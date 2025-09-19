@@ -30,14 +30,40 @@ def create_baseline_model():
 
         # TODO: Implement the required layers 
 
-        # Block 1: Conv2D(32, 3x3) -> BatchNorm -> ReLU -> Conv2D(32, 3x3) -> BatchNorm -> ReLU -> MaxPool(2x2) 
+        # Block 1: Conv2D(32, 3x3) -> BatchNorm -> ReLU -> Conv2D(32, 3x3) -> BatchNorm -> ReLU -> MaxPool(2x2)
+        keras.layers.Input(shape=(32, 32, 3)),
+        keras.layers.Conv2D(32, (3, 3), padding='same'),
+        keras.layers.BatchNormalization(),
+        keras.layers.ReLU(),
+        keras.layers.Conv2D(32, (3, 3), padding='same'),
+        keras.layers.BatchNormalization(),
+        keras.layers.ReLU(),
+        keras.layers.MaxPooling2D((2, 2)),
 
         # Block 2: Conv2D(64, 3x3) -> BatchNorm -> ReLU -> Conv2D(64, 3x3) -> BatchNorm -> ReLU -> MaxPool(2x2) 
+        keras.layers.Conv2D(64, (3, 3), padding='same'),
+        keras.layers.BatchNormalization(),
+        keras.layers.ReLU(),
+        keras.layers.Conv2D(64, (3, 3), padding='same'),
+        keras.layers.BatchNormalization(),
+        keras.layers.ReLU(),
+        keras.layers.MaxPooling2D((2, 2)),
 
         # Block 3: Conv2D(128, 3x3) -> BatchNorm -> ReLU -> Conv2D(128, 3x3) -> BatchNorm -> ReLU -> MaxPool(2x2) 
-
+        keras.layers.Conv2D(128, (3, 3), padding='same'),
+        keras.layers.BatchNormalization(),
+        keras.layers.ReLU(),
+        keras.layers.Conv2D(128, (3, 3), padding='same'),
+        keras.layers.BatchNormalization(),
+        keras.layers.ReLU(),
+        keras.layers.MaxPooling2D((2, 2)),
+        
         # Classifier: GlobalAveragePooling2D -> Dropout(0.5) -> Dense(256) -> Dropout(0.3) -> Dense(10) 
-
+        keras.layers.GlobalAveragePooling2D(),
+        keras.layers.Dropout(0.5),
+        keras.layers.Dense(256, activation='relu'),
+        keras.layers.Dropout(0.3),
+        keras.layers.Dense(10, activation='softmax'),
     ]) 
 
      
@@ -73,12 +99,42 @@ def load_and_preprocess_data():
     """ 
 
     # TODO: Load CIFAR-10 dataset 
+    (x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
 
     # Normalize pixel values to [0, 1] range 
+    x_train = x_train / 255.0
+    x_test = x_test / 255.0
 
     # Apply data augmentation for training set 
+    datagen = keras.preprocessing.image.ImageDataGenerator(
+        rotation_range=15,
+        width_shift_range=0.1,
+        height_shift_range=0.1,
+        shear_range=0.1,
+        zoom_range=0.1,
+        horizontal_flip=True,
+        fill_mode='nearest'
+    )
+    datagen.fit(x_train)
+    
+    # Generate augmented training data
+    augmented_data = []
+    augmented_labels = []
+    for batch_x, batch_y in datagen.flow(x_train, y_train, batch_size=32, shuffle=False):
+        augmented_data.append(batch_x)
+        augmented_labels.append(batch_y)
+        if len(augmented_data) * 32 >= len(x_train):
+            break
+    
+    # Convert to numpy arrays and concatenate with original data
+    augmented_x = np.concatenate(augmented_data, axis=0)[:len(x_train)]
+    augmented_y = np.concatenate(augmented_labels, axis=0)[:len(y_train)]
+    
+    # Replace original training data with augmented data
+    x_train = augmented_x
+    y_train = augmented_y
 
-    pass 
+    return (x_train, y_train, x_test, y_test) 
 
  
 
@@ -96,17 +152,27 @@ def train_baseline_model(model, x_train, y_train, x_test, y_test):
 
     """ 
 
-    # TODO: Implement training with callbacks: 
-
+    # TODO: Implement training with callbacks:
     # - EarlyStopping (patience=10) 
-
+    early_stopping = keras.callbacks.EarlyStopping(patience=10)
+    
     # - ReduceLROnPlateau 
-
-    # - ModelCheckpoint 
+    reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=0.0001)
+    
+    # - ModelCheckpoint
+    model_checkpoint = keras.callbacks.ModelCheckpoint('best_model.keras', monitor='val_loss', save_best_only=True)
+    callbacks = [early_stopping, reduce_lr, model_checkpoint]
 
     # Train for maximum 50 epochs 
-
-    pass 
+    history = model.fit(x_train, y_train,
+                        batch_size=128,
+                        epochs=50,
+                        validation_data=(x_test, y_test),
+                        callbacks=callbacks)
+    metrics = history.history
+    metrics['test_accuracy'] = metrics['val_accuracy'][-1]
+    metrics['test_loss'] = metrics['val_loss'][-1]
+    return model, history, metrics 
 
  
 
