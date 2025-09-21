@@ -8,6 +8,16 @@ import time
 
 import os 
 
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('part1_baseline.log', mode='w')
+    ]
+)
+logger = logging.getLogger(__name__)
  
 
 def create_baseline_model(): 
@@ -78,7 +88,7 @@ def create_baseline_model():
 
     ) 
 
-     
+    logger.info(model.summary())
 
     return model 
 
@@ -134,6 +144,8 @@ def load_and_preprocess_data():
     x_train = augmented_x
     y_train = augmented_y
 
+    logger.info(f"Loaded and preprocessed CIFAR-10 dataset")
+
     return (x_train, y_train, x_test, y_test) 
 
  
@@ -169,17 +181,57 @@ def train_baseline_model(model, x_train, y_train, x_test, y_test):
                         epochs=50,
                         validation_data=(x_test, y_test),
                         callbacks=callbacks)
-    metrics = history.history
-    metrics['test_accuracy'] = metrics['val_accuracy'][-1]
-    metrics['test_loss'] = metrics['val_loss'][-1]
-    return model, history, metrics 
+    
+    # Model size analysis (parameters, memory footprint)
+    total_params = model.count_params()
+    weights_memory_mb = total_params * 4 / (1024 * 1024)  # 4 bytes per float32 parameter
+    
+    logger.info(f"\n📊 Model Size Analysis:")
+    logger.info(f"   Total Parameters: {total_params:,}")
+    logger.info(f"   Model Weights: {weights_memory_mb:.2f} MB")
+    logger.info(f"   Training Memory (est.): {weights_memory_mb * 3:.2f} MB")
+    logger.info(f"   Inference Memory (est.): {weights_memory_mb * 1.1:.2f} MB")
+    
+    # Baseline performance metrics (accuracy, inference time, model size)
+    # Calculate test accuracy
+    test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
+    
+    # Measure inference time
+    start_time = time.time()
+    _ = model.predict(x_test[:100], verbose=0)  # Predict on 100 samples
+    inference_time = time.time() - start_time
+    avg_inference_time = inference_time / 100 * 1000  # Convert to milliseconds per sample
+    
+    logger.info(f"\n⚡ Performance Metrics:")
+    logger.info(f"   Test Accuracy: {test_accuracy:.4f}")
+    logger.info(f"   Test Loss: {test_loss:.4f}")
+    logger.info(f"   Avg Inference Time: {avg_inference_time:.2f} ms/sample")
+    
+    # Create metrics dictionary
+    metrics = {
+        'test_accuracy': test_accuracy,
+        'test_loss': test_loss,
+        'total_parameters': total_params,
+        'model_size_mb': weights_memory_mb,
+        'inference_time_ms': avg_inference_time
+    }
+    
+    return (model, history, metrics) 
 
  
 
 if __name__ == "__main__": 
+    
+    # Use GPU if available
+    if tf.config.list_physical_devices('GPU'):
+        tf.config.set_visible_devices(tf.config.list_physical_devices('GPU')[0], 'GPU')
+        tf.config.experimental.set_memory_growth(tf.config.list_physical_devices('GPU')[0], True)
+        logger.info("🚀 GPU available, using GPU!")
+    else:
+        logger.info("🚫 No GPU available, falling back to CPU")
 
     # Load data 
-
+    
     x_train, y_train, x_test, y_test = load_and_preprocess_data() 
 
      
@@ -195,9 +247,3 @@ if __name__ == "__main__":
     # Save baseline model 
 
     model.save('baseline_model.keras') 
-
-     
-
-    print(f"Baseline model parameters: {model.count_params():,}") 
-
-    print(f"Baseline test accuracy: {metrics['test_accuracy']:.4f}")
