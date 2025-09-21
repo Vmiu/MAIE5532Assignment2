@@ -1,0 +1,14 @@
+🚀 GPU available, using GPU!
+Loaded and preprocessed CIFAR-10 dataset
+None
+
+📊 Model Size Analysis:
+   Total Parameters: 324,394
+   Model Weights: 1.24 MB
+   Training Memory (est.): 3.71 MB
+   Inference Memory (est.): 1.36 MB
+
+⚡ Performance Metrics:
+   Test Accuracy: 0.8109
+   Test Loss: 0.7390
+   Avg Inference Time: 12.56 ms/sample
