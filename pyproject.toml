@@ -3,10 +3,10 @@ name = "maie5532assignment2"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 dependencies = [
-    "numpy>=1.26.4",
-    "scipy>=1.16.2",
-    "tensorflow>=2.18.1",
+    "cmake>=4.1.0",
+    "scipy>=1.13.1",
     "tensorflow-model-optimization>=0.8.0",
+    "tensorflow[and-cuda]>=2.18.1",
 ]
