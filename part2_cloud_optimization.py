@@ -1,17 +1,28 @@
 import tensorflow as tf 
 
+from tensorflow import keras
 from tensorflow.keras import mixed_precision 
 
-import tensorflow_model_optimization as tfmot 
+import tensorflow_model_optimization as tfmot
 
- 
+# Configure logging to both console and file
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('part2_cloud_optimization.log', mode='w')
+    ]
+)
 
 class CloudOptimizer: 
 
     def __init__(self, baseline_model_path): 
 
-        self.baseline_model = tf.keras.models.load_model(baseline_model_path) 
-
+        self.baseline_model = keras.models.load_model(baseline_model_path)
+        
+        self.logger = logging.getLogger(__name__)
          
 
     def implement_mixed_precision(self): 
@@ -29,12 +40,39 @@ class CloudOptimizer:
         """ 
 
         # TODO: Enable mixed precision policy 
-
+        policy = mixed_precision.Policy('mixed_float16')
+        mixed_precision.set_global_policy(policy)
+        
+        self.logger.info(f"Mixed precision policy set to {policy}")
+        self.logger.info(f"Compute dtype: {policy.compute_dtype}")
+        self.logger.info(f"Variable dtype: {policy.variable_dtype}")
+        
         # TODO: Modify model for mixed precision compatibility 
+        # Recreate the model with mixed precision policy
+        model_config = self.baseline_model.get_config()
+        model_weights = self.baseline_model.get_weights()
+        mixed_precision_model = keras.Sequential.from_config(model_config)
+        mixed_precision_model.set_weights(model_weights)
+        
+        # Change the prediction layer to float32
+        mixed_precision_model.layers[-1].activation = keras.activations.softmax
+        mixed_precision_model.layers[-1].dtype = 'float32'
+        
+        self.logger.info(f"Mixed precision model created with same architecture as baseline")
 
-        # TODO: Handle loss scaling appropriately 
-
-        pass 
+        # TODO: Handle loss scaling appropriately
+        optimizer = keras.optimizers.Adam(learning_rate=0.001)
+        optimizer = mixed_precision.LossScaleOptimizer(optimizer, dynamic=True)
+        
+        mixed_precision_model.compile(
+            optimizer=optimizer,
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy']
+        )
+        
+        self.logger.info(f"Mixed precision model compiled with {optimizer}")
+        
+        return mixed_precision_model
 
      
 
@@ -59,12 +97,33 @@ class CloudOptimizer:
         """ 
 
         # TODO: Implement distributed training strategy 
+        if strategy == 'mirrored':
+            strategy = tf.distribute.MirroredStrategy()
+        elif strategy == 'multi_worker_mirrored':
+            strategy = tf.distribute.MultiWorkerMirroredStrategy()
+        elif strategy == 'parameter_server':
+            strategy = tf.distribute.ParameterServerStrategy()
+        else:
+            self.logger.error(f"Invalid strategy: {strategy.__class__.__name__}")
+            raise ValueError(f"Invalid strategy: {strategy.__class__.__name__}")
 
         # TODO: Adapt model for chosen parallelism approach 
+        with strategy.scope():
+            model_config = self.baseline_model.get_config()
+            model_weights = self.baseline_model.get_weights()
+            distributed_model = keras.Sequential.from_config(model_config)
+            distributed_model.set_weights(model_weights)
 
         # TODO: Configure gradient synchronization 
+        distributed_model.compile(
+            optimizer=keras.optimizers.Adam(learning_rate=0.001),
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy']
+        )
+        
+        self.logger.info(f"Distributed model compiled with {strategy.__class__.__name__}")
 
-        pass 
+        return (distributed_model, strategy)
 
      
 
@@ -94,7 +153,7 @@ class CloudOptimizer:
 
         # TODO: Configure prefetching and parallelism 
 
-        pass 
+        pass
 
      
 
@@ -112,7 +171,15 @@ class CloudOptimizer:
 
         """ 
 
-        # TODO: Create larger teacher model (2x parameters) 
+        # TODO: Create larger teacher model (2x parameters)
+        student_model_config = self.baseline_model.get_config()
+        # Increase the number of parameters by 2x
+        for layer in student_model_config['layers']:
+            if layer['class_name'] == 'Dense' or layer['class_name'] == 'Conv2D':
+                layer['config']['units'] = layer['config']['units'] * 2
+        teacher_model = keras.Sequential.from_config(student_model_config)
+        teacher_model.set_weights(self.baseline_model.get_weights())
+        teacher_model.summary()
 
         # TODO: Implement knowledge distillation loss 
 
