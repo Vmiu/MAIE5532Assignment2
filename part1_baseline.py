@@ -19,6 +19,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
  
+from streamlined_analysis import streamlined_model_analysis
 
 def create_baseline_model(): 
 
@@ -88,7 +89,7 @@ def create_baseline_model():
 
     ) 
 
-    logger.info(model.summary())
+    print(model.summary())
 
     return model 
 
@@ -176,46 +177,16 @@ def train_baseline_model(model, x_train, y_train, x_test, y_test):
     callbacks = [early_stopping, reduce_lr, model_checkpoint]
 
     # Train for maximum 50 epochs 
+    logger.info(f"Training baseline model for 50 epochs")
+    time_start = time.time()
     history = model.fit(x_train, y_train,
                         batch_size=128,
                         epochs=50,
                         validation_data=(x_test, y_test),
                         callbacks=callbacks)
-    
-    # Model size analysis (parameters, memory footprint)
-    total_params = model.count_params()
-    weights_memory_mb = total_params * 4 / (1024 * 1024)  # 4 bytes per float32 parameter
-    
-    logger.info(f"\n📊 Model Size Analysis:")
-    logger.info(f"   Total Parameters: {total_params:,}")
-    logger.info(f"   Model Weights: {weights_memory_mb:.2f} MB")
-    logger.info(f"   Training Memory (est.): {weights_memory_mb * 3:.2f} MB")
-    logger.info(f"   Inference Memory (est.): {weights_memory_mb * 1.1:.2f} MB")
-    
-    # Baseline performance metrics (accuracy, inference time, model size)
-    # Calculate test accuracy
-    test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
-    
-    # Measure inference time
-    start_time = time.time()
-    _ = model.predict(x_test[:100], verbose=0)  # Predict on 100 samples
-    inference_time = time.time() - start_time
-    avg_inference_time = inference_time / 100 * 1000  # Convert to milliseconds per sample
-    
-    logger.info(f"\n⚡ Performance Metrics:")
-    logger.info(f"   Test Accuracy: {test_accuracy:.4f}")
-    logger.info(f"   Test Loss: {test_loss:.4f}")
-    logger.info(f"   Avg Inference Time: {avg_inference_time:.2f} ms/sample")
-    
-    # Create metrics dictionary
-    metrics = {
-        'test_accuracy': test_accuracy,
-        'test_loss': test_loss,
-        'total_parameters': total_params,
-        'model_size_mb': weights_memory_mb,
-        'inference_time_ms': avg_inference_time
-    }
-    
+    time_end = time.time()
+    logger.info(f"🕒 Total time taken to train baseline model: {time_end - time_start:.2f} seconds")
+    metrics = streamlined_model_analysis(model, x_test, y_test, 128, 'best_model.keras', logger)
     return (model, history, metrics) 
 
  

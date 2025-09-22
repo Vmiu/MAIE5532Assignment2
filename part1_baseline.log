@@ -1,14 +1,25 @@
 🚀 GPU available, using GPU!
 Loaded and preprocessed CIFAR-10 dataset
-None
+Training baseline model for 50 epochs
+🕒 Total time taken to train baseline model: 50.46 seconds
 
-📊 Model Size Analysis:
+============================================================
+🔍 STREAMLINED ANALYSIS: best_model.keras
+============================================================
+
+🏗️  ARCHITECTURE & MEMORY ANALYSIS
+--------------------------------------------------
    Total Parameters: 324,394
-   Model Weights: 1.24 MB
-   Training Memory (est.): 3.71 MB
-   Inference Memory (est.): 1.36 MB
+   Trainable Parameters: 323,498
+   Assume dtype = float32, optimizer = Adam
+   Model File Size: 3.81 MB
+   Theoretical Memory: 1.24 MB
+   Training Memory: 6.45 MB
+   Inference Memory: 2.74 MB
+   Memory footprint: 9.19 MB
 
-⚡ Performance Metrics:
-   Test Accuracy: 0.8109
-   Test Loss: 0.7390
-   Avg Inference Time: 12.56 ms/sample
+⚡ PERFORMANCE & SPEED ANALYSIS
+--------------------------------------------------
+   Test Accuracy:81.20%
+   Test Loss: 0.7257
+   Single Sample Time: 39.76 ± 64.12 ms
