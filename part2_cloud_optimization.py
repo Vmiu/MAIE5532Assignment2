@@ -16,11 +16,16 @@ logging.basicConfig(
     ]
 )
 
+from part1_baseline import load_and_preprocess_data
+
 class CloudOptimizer: 
 
     def __init__(self, baseline_model_path): 
 
         self.baseline_model = keras.models.load_model(baseline_model_path)
+        
+        # Load the data
+        (self.x_train, self.y_train), (self.x_test, self.y_test) = load_and_preprocess_data()
         
         self.logger = logging.getLogger(__name__)
          
@@ -72,6 +77,9 @@ class CloudOptimizer:
         
         self.logger.info(f"Mixed precision model compiled with {optimizer}")
         
+        # Train the model
+        mixed_precision_model.fit(self.x_train, self.y_train, epochs=10, batch_size=128, validation_data=(self.x_test, self.y_test))
+        
         return mixed_precision_model
 
      
@@ -98,17 +106,17 @@ class CloudOptimizer:
 
         # TODO: Implement distributed training strategy 
         if strategy == 'mirrored':
-            strategy = tf.distribute.MirroredStrategy()
+            tf_strategy = tf.distribute.MirroredStrategy()
         elif strategy == 'multi_worker_mirrored':
-            strategy = tf.distribute.MultiWorkerMirroredStrategy()
+            tf_strategy = tf.distribute.MultiWorkerMirroredStrategy()
         elif strategy == 'parameter_server':
-            strategy = tf.distribute.ParameterServerStrategy()
+            tf_strategy = tf.distribute.ParameterServerStrategy()
         else:
-            self.logger.error(f"Invalid strategy: {strategy.__class__.__name__}")
-            raise ValueError(f"Invalid strategy: {strategy.__class__.__name__}")
+            self.logger.error(f"Invalid strategy: {strategy}")
+            raise ValueError(f"Invalid strategy: {strategy}")
 
         # TODO: Adapt model for chosen parallelism approach 
-        with strategy.scope():
+        with tf_strategy.scope():
             model_config = self.baseline_model.get_config()
             model_weights = self.baseline_model.get_weights()
             distributed_model = keras.Sequential.from_config(model_config)
@@ -121,9 +129,9 @@ class CloudOptimizer:
             metrics=['accuracy']
         )
         
-        self.logger.info(f"Distributed model compiled with {strategy.__class__.__name__}")
+        self.logger.info(f"Distributed model compiled with {tf_strategy.__class__.__name__}")
 
-        return (distributed_model, strategy)
+        return (distributed_model, tf_strategy)
 
      
 
@@ -173,19 +181,27 @@ class CloudOptimizer:
 
         # TODO: Create larger teacher model (2x parameters)
         student_model_config = self.baseline_model.get_config()
+        student_model = keras.Sequential.from_config(student_model_config)
+        student_model.set_weights(self.baseline_model.get_weights())
+        print("Student model summary:")
+        student_model.summary()
         # Increase the number of parameters by 2x
         for layer in student_model_config['layers']:
             if layer['class_name'] == 'Dense' or layer['class_name'] == 'Conv2D':
                 layer['config']['units'] = layer['config']['units'] * 2
         teacher_model = keras.Sequential.from_config(student_model_config)
         teacher_model.set_weights(self.baseline_model.get_weights())
+        print("Teacher model summary:")
         teacher_model.summary()
 
-        # TODO: Implement knowledge distillation loss 
+        # TODO: Implement knowledge distillation loss
+        loss = keras.losses.KLDivergence()
 
         # TODO: Set up distillation training loop 
+        teacher_model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001), loss=loss, metrics=['accuracy'])
+        
 
-        pass 
+        return (teacher_model, student_model, loss)
 
  
 
