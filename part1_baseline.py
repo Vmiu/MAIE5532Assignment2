@@ -4,17 +4,23 @@ from tensorflow import keras
 
 import numpy as np 
 
+import matplotlib.pyplot as plt
+
 import time 
 
 import os 
 
 import logging
+
+# Create directory if it doesn't exist
+os.makedirs('part1_baseline', exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('part1_baseline.log', mode='w')
+        logging.FileHandler('part1_baseline/terminal.log', mode='w')
     ]
 )
 logger = logging.getLogger(__name__)
@@ -173,7 +179,7 @@ def train_baseline_model(model, x_train, y_train, x_test, y_test):
     reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=0.0001)
     
     # - ModelCheckpoint
-    model_checkpoint = keras.callbacks.ModelCheckpoint('best_model.keras', monitor='val_loss', save_best_only=True)
+    model_checkpoint = keras.callbacks.ModelCheckpoint('part1_baseline/best_model.keras', monitor='val_loss', save_best_only=True)
     callbacks = [early_stopping, reduce_lr, model_checkpoint]
 
     # Train for maximum 50 epochs 
@@ -186,7 +192,27 @@ def train_baseline_model(model, x_train, y_train, x_test, y_test):
                         callbacks=callbacks)
     time_end = time.time()
     logger.info(f"🕒 Total time taken to train baseline model: {time_end - time_start:.2f} seconds")
-    metrics = streamlined_model_analysis(model, x_test, y_test, 128, 'best_model.keras', logger)
+    
+    # Plot accuracy and loss
+    plt.plot(history.history['accuracy'])
+    plt.plot(history.history['val_accuracy'])
+    plt.title('Model accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Validation'], loc='upper left')
+    plt.savefig('part1_baseline/accuracy.png')
+    plt.close()
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Model loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Validation'], loc='upper left')
+    plt.savefig('part1_baseline/loss.png')
+    plt.close()
+    
+    # Streamlined model analysis
+    metrics = streamlined_model_analysis(model, x_test, y_test, 128, 'part1_baseline/best_model.keras', logger)
     return (model, history, metrics) 
 
  
@@ -217,4 +243,4 @@ if __name__ == "__main__":
 
     # Save baseline model 
 
-    model.save('baseline_model.keras') 
+    model.save('part1_baseline/baseline_model.keras') 

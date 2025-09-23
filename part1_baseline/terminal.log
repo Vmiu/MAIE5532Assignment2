@@ -1,10 +1,10 @@
 🚀 GPU available, using GPU!
 Loaded and preprocessed CIFAR-10 dataset
 Training baseline model for 50 epochs
-🕒 Total time taken to train baseline model: 50.46 seconds
+🕒 Total time taken to train baseline model: 51.07 seconds
 
 ============================================================
-🔍 STREAMLINED ANALYSIS: best_model.keras
+🔍 STREAMLINED ANALYSIS: part1_baseline/best_model.keras
 ============================================================
 
 🏗️  ARCHITECTURE & MEMORY ANALYSIS
@@ -20,6 +20,6 @@ Training baseline model for 50 epochs
 
 ⚡ PERFORMANCE & SPEED ANALYSIS
 --------------------------------------------------
-   Test Accuracy:81.20%
-   Test Loss: 0.7257
-   Single Sample Time: 39.76 ± 64.12 ms
+   Test Accuracy:82.07%
+   Test Loss: 0.7518
+   Single Sample Time: 38.92 ± 58.85 ms
