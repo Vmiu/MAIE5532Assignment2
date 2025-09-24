@@ -10,20 +10,10 @@ import time
 
 import os 
 
-import logging
+from logger_utils import get_simple_logger
 
 # Create directory if it doesn't exist
 os.makedirs('part1_baseline', exist_ok=True)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('part1_baseline/terminal.log', mode='w')
-    ]
-)
-logger = logging.getLogger(__name__)
  
 from streamlined_analysis import streamlined_model_analysis
 
@@ -95,8 +85,6 @@ def create_baseline_model():
 
     ) 
 
-    print(model.summary())
-
     return model 
 
  
@@ -151,8 +139,6 @@ def load_and_preprocess_data():
     x_train = augmented_x
     y_train = augmented_y
 
-    logger.info(f"Loaded and preprocessed CIFAR-10 dataset")
-
     return (x_train, y_train, x_test, y_test) 
 
  
@@ -183,15 +169,15 @@ def train_baseline_model(model, x_train, y_train, x_test, y_test):
     callbacks = [early_stopping, reduce_lr, model_checkpoint]
 
     # Train for maximum 50 epochs 
-    logger.info(f"Training baseline model for 50 epochs")
+    part1_logger.info(f"Training baseline model for 50 epochs")
     time_start = time.time()
     history = model.fit(x_train, y_train,
-                        batch_size=128,
+                        batch_size=64,  # Reduced from 128 to reduce register pressure
                         epochs=50,
                         validation_data=(x_test, y_test),
                         callbacks=callbacks)
     time_end = time.time()
-    logger.info(f"🕒 Total time taken to train baseline model: {time_end - time_start:.2f} seconds")
+    part1_logger.info(f"🕒 Total time taken to train baseline model: {time_end - time_start:.2f} seconds")
     
     # Plot accuracy and loss
     plt.plot(history.history['accuracy'])
@@ -204,20 +190,27 @@ def train_baseline_model(model, x_train, y_train, x_test, y_test):
     plt.close()
     
     # Streamlined model analysis
-    metrics = streamlined_model_analysis(model, x_test, y_test, 128, 'part1_baseline/best_model.keras', logger)
+    metrics = streamlined_model_analysis(model, x_test, y_test, 64, 'part1_baseline/best_model.keras', part1_logger)
     return (model, history, metrics) 
 
  
 
 if __name__ == "__main__": 
+    part1_logger = get_simple_logger("part1_baseline", "part1_baseline/part1_terminal.log")
     
     # Use GPU if available
-    if tf.config.list_physical_devices('GPU'):
-        tf.config.set_visible_devices(tf.config.list_physical_devices('GPU')[0], 'GPU')
-        tf.config.experimental.set_memory_growth(tf.config.list_physical_devices('GPU')[0], True)
-        logger.info("🚀 GPU available, using GPU!")
+    physical_devices = tf.config.list_physical_devices('GPU')
+    if len(physical_devices) > 0:
+        part1_logger.info(f"GPU available: {physical_devices}")
+        for device in physical_devices:
+            tf.config.experimental.set_memory_growth(device, True)
+        
+        # Additional optimizations to reduce CUDA register spilling
+        tf.config.optimizer.set_jit(True)  # Enable XLA compilation
+        tf.config.threading.set_inter_op_parallelism_threads(0)  # Use all available cores
+        tf.config.threading.set_intra_op_parallelism_threads(0)  # Use all available cores
     else:
-        logger.info("🚫 No GPU available, falling back to CPU")
+        part1_logger.info(f"No GPU available")
 
     # Load data 
     

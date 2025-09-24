@@ -1,0 +1,40 @@
+GPU available: [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+Loaded and preprocessed CIFAR-10 dataset
+Training baseline model for 50 epochs
+🕒 Total time taken to train baseline model: 100.69 seconds
+
+============================================================
+🔍 STREAMLINED ANALYSIS: part1_baseline/best_model.keras
+============================================================
+
+🏗️  ARCHITECTURE & MEMORY ANALYSIS
+--------------------------------------------------
+   Total Parameters: 324,394
+   Trainable Parameters: 323,498
+   Layer conv2d: 896 params, dtype=float32, policy=<DTypePolicy "float32">, size=3.50 KB
+   Layer batch_normalization: 128 params, dtype=float32, policy=<DTypePolicy "float32">, size=0.50 KB
+   Layer conv2d_1: 9,248 params, dtype=float32, policy=<DTypePolicy "float32">, size=36.12 KB
+   Layer batch_normalization_1: 128 params, dtype=float32, policy=<DTypePolicy "float32">, size=0.50 KB
+   Layer conv2d_2: 18,496 params, dtype=float32, policy=<DTypePolicy "float32">, size=72.25 KB
+   Layer batch_normalization_2: 256 params, dtype=float32, policy=<DTypePolicy "float32">, size=1.00 KB
+   Layer conv2d_3: 36,928 params, dtype=float32, policy=<DTypePolicy "float32">, size=144.25 KB
+   Layer batch_normalization_3: 256 params, dtype=float32, policy=<DTypePolicy "float32">, size=1.00 KB
+   Layer conv2d_4: 73,856 params, dtype=float32, policy=<DTypePolicy "float32">, size=288.50 KB
+   Layer batch_normalization_4: 512 params, dtype=float32, policy=<DTypePolicy "float32">, size=2.00 KB
+   Layer conv2d_5: 147,584 params, dtype=float32, policy=<DTypePolicy "float32">, size=576.50 KB
+   Layer batch_normalization_5: 512 params, dtype=float32, policy=<DTypePolicy "float32">, size=2.00 KB
+   Layer dense: 33,024 params, dtype=float32, policy=<DTypePolicy "float32">, size=129.00 KB
+   Layer dense_1: 2,570 params, dtype=float32, policy=<DTypePolicy "float32">, size=10.04 KB
+   Model File Size: 3.81 MB
+   Theoretical Memory: 1.24 MB
+   Training Memory: 6.45 MB
+   Inference Memory: 1.25 MB
+   Memory footprint: 7.70 MB
+
+⚡ PERFORMANCE & SPEED ANALYSIS
+--------------------------------------------------
+   Test Accuracy:81.00%
+   Test Loss: 0.8908
+   Single Sample Time: 2.84 ± 29.79 ms
+   GPU Available: Yes
+   GPU Memory Growth: True
