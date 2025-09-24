@@ -202,14 +202,6 @@ def train_baseline_model(model, x_train, y_train, x_test, y_test):
     plt.legend(['Train', 'Validation'], loc='upper left')
     plt.savefig('part1_baseline/accuracy.png')
     plt.close()
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Model loss')
-    plt.ylabel('Loss')
-    plt.xlabel('Epoch')
-    plt.legend(['Train', 'Validation'], loc='upper left')
-    plt.savefig('part1_baseline/loss.png')
-    plt.close()
     
     # Streamlined model analysis
     metrics = streamlined_model_analysis(model, x_test, y_test, 128, 'part1_baseline/best_model.keras', logger)
