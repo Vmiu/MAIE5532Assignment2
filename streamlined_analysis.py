@@ -4,6 +4,8 @@ import time
 import os
 import logging
 
+
+
 def streamlined_model_analysis(model, x_test, y_test, batch_size, model_path, logger):
     """
     Streamlined model analysis focusing on key metrics.
@@ -58,7 +60,7 @@ def streamlined_model_analysis(model, x_test, y_test, batch_size, model_path, lo
                 dtype_size_bytes = 4  # Default to float32
             
             total_weight_memory += layer_params * dtype_size_bytes
-            logger.info(f"   Layer {layer.name}: {layer_params:,} params, dtype={layer_dtype}, size={layer_params * dtype_size_bytes / (1024):.2f} KB")
+            logger.info(f"   Layer {layer.name}: {layer_params:,} params, dtype={layer_dtype}, policy={layer.dtype_policy}, size={layer_params * dtype_size_bytes / (1024):.2f} KB")
     
     theoretical_memory_mb = total_weight_memory / (1024 * 1024)
     
@@ -124,11 +126,6 @@ def streamlined_model_analysis(model, x_test, y_test, batch_size, model_path, lo
     
     avg_single_time = np.mean(single_sample_times)
     std_single_time = np.std(single_sample_times)
-    
-    # Calculate percentiles for better understanding
-    p50 = np.percentile(single_sample_times, 50)
-    p95 = np.percentile(single_sample_times, 95)
-    p99 = np.percentile(single_sample_times, 99)
     
     logger.info(f"   Single Sample Time: {avg_single_time:.2f} ± {std_single_time:.2f} ms")
     
