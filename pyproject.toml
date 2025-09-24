@@ -10,4 +10,5 @@ dependencies = [
     "scipy>=1.13.1",
     "tensorflow-model-optimization>=0.8.0",
     "tensorflow[and-cuda]>=2.18.1",
+    "tf-keras>=2.18.0",
 ]
