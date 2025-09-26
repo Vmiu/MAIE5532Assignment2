@@ -145,16 +145,6 @@ class CloudOptimizer:
             dict: Optimized training configuration
 
         """ 
-
-        # Implement gradient accumulation for large effective batch sizes
-        physical_batch_size = 64
-        accumulation_steps = target_batch_size // physical_batch_size
-        
-        part2_logger.info(f"Implementing gradient accumulation:")
-        part2_logger.info(f"  Target batch size: {target_batch_size}")
-        part2_logger.info(f"  Physical batch size: {physical_batch_size}")
-        part2_logger.info(f"  Accumulation steps: {accumulation_steps}")
-        
         # Create a copy of the baseline model for gradient accumulation training
         model_config = self.baseline_model.get_config()
         model_weights = self.baseline_model.get_weights()
@@ -172,14 +162,15 @@ class CloudOptimizer:
         # Optimize data pipeline for high throughput
         # Create tf.data.Dataset with prefetching and parallelism
         train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
-        train_dataset = train_dataset.batch(physical_batch_size)
+        train_dataset = train_dataset.batch(target_batch_size)
         train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
         train_dataset = train_dataset.cache()
         
+        # Implement gradient accumulation for large effective batch sizes
         # Training step that handles both normal and gradient accumulation
-        def training_step(model, optimizer, x_batch, y_batch, accumulation_steps):
+        def training_step(model, optimizer, x_batch, y_batch, target_batch_size, physical_batch_size):
             """Training step that handles both normal training and gradient accumulation"""
-            
+            accumulation_steps = target_batch_size // physical_batch_size
             try:
                 if accumulation_steps == 1:
                     # Normal training - no accumulation needed
@@ -253,13 +244,71 @@ class CloudOptimizer:
                 part2_logger.error(f"Training step failed: {e}")
                 raise e
 
+        # Measure throughput for this specific target_batch_size
+        physical_batch_size = 64
+        accumulation_steps = target_batch_size // physical_batch_size
+        
+        part2_logger.info(f"Testing throughput for batch size: {target_batch_size}")
+        part2_logger.info(f"  Accumulation steps: {accumulation_steps}")
+        
+        # Create fresh model for throughput testing
+        test_model_config = self.baseline_model.get_config()
+        test_model_weights = self.baseline_model.get_weights()
+        test_model = keras.Sequential.from_config(test_model_config)
+        test_model.set_weights(test_model_weights)
+        
+        test_optimizer = keras.optimizers.Adam(learning_rate=0.001)
+        test_model.compile(
+            optimizer=test_optimizer,
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy']
+        )
+        
+        # Warm up
+        warmup_batch = x_train[:target_batch_size]
+        warmup_labels = y_train[:target_batch_size]
+        training_step(test_model, test_optimizer, warmup_batch, warmup_labels, target_batch_size, physical_batch_size)
+        
+        # Measure throughput
+        start_time = time.time()
+        samples_processed = 0
+        num_batches = min(10, len(x_train) // target_batch_size)  # Limit to 10 batches
+        
+        for batch_idx in range(num_batches):
+            start_idx = batch_idx * target_batch_size
+            end_idx = min((batch_idx + 1) * target_batch_size, len(x_train))
+            
+            x_batch = x_train[start_idx:end_idx]
+            y_batch = y_train[start_idx:end_idx]
+            
+            training_step(test_model, test_optimizer, x_batch, y_batch, target_batch_size, physical_batch_size)
+            samples_processed += len(x_batch)
+        
+        end_time = time.time()
+        training_time = end_time - start_time
+        
+        # Calculate throughput metrics
+        throughput_samples_per_sec = samples_processed / training_time
+        throughput_batches_per_sec = samples_processed / (target_batch_size * training_time)
+        
+        part2_logger.info(f"  Results: {throughput_samples_per_sec:.2f} samples/sec, {throughput_batches_per_sec:.2f} batches/sec")
+
         return {
             "Physical Batch Size": physical_batch_size,
             "Target Batch Size": target_batch_size,
             "Accumulation Steps": accumulation_steps,
             "Training Step Function": training_step,
             "Optimized Model": ga_model,
-            "Optimizer": optimizer
+            "Optimizer": optimizer,
+            "Throughput Results": {
+                'training_time': training_time,
+                'samples_processed': samples_processed,
+                'throughput_samples_per_sec': throughput_samples_per_sec,
+                'throughput_batches_per_sec': throughput_batches_per_sec,
+                'accumulation_steps': accumulation_steps,
+                'physical_batch_size': physical_batch_size,
+                'target_batch_size': target_batch_size
+            }
         }
      
 
@@ -466,6 +515,8 @@ class CloudOptimizer:
                     f"Val Acc: {val_acc_metric.result():.4f}")
             
             part2_logger.info("Knowledge distillation training completed!")
+            student_model.save('part2_cloud_optimization/student_model.keras')
+            teacher_model.save('part2_cloud_optimization/teacher_model.keras')
             return student_model
         
 
@@ -506,20 +557,20 @@ def benchmark_cloud_optimizations():
     end_time = time.time()
     part2_logger.info(f"Training time: {end_time - start_time} seconds")
     
-    # # Save the model for analysis
+    # Save the model for analysis
     MixedPrecisionModel.save('part2_cloud_optimization/mixed_precision_model.keras')
 
-    # # Use streamlined analysis for comprehensive metrics
+    # Use streamlined analysis for comprehensive metrics
     mixed_precision_metrics = streamlined_model_analysis(
         MixedPrecisionModel, x_test, y_test, 64, 'part2_cloud_optimization/mixed_precision_model.keras', part2_logger
     )
     
-    # metrics['mixed_precision'] = mixed_precision_metrics
+    # results['mixed_precision'] = mixed_precision_metrics
     
     ############################################################
     ############################################################
     
-    # Benchmark model parallelism 
+    #Benchmark model parallelism 
     OneDeviceModel, tf_strategy = optimizer.implement_model_parallelism(strategy='onedevice')
     DistributedModel, tf_strategy = optimizer.implement_model_parallelism(strategy='mirrored')
     # TODO: Measure scaling efficiency across multiple GPUs 
@@ -533,7 +584,7 @@ def benchmark_cloud_optimizations():
     part2_logger.info(f"Distributed training time: {Distributed_training_time} seconds")
     part2_logger.info(f"scaling efficiency: {OneDevice_training_time / Distributed_training_time}")
     
-    metrics['Model Parallelism'] = {
+    results['Model Parallelism'] = {
         'OneDevice_training_time': OneDevice_training_time, 
         'Distributed_training_time': Distributed_training_time, 
         'scaling_efficiency': OneDevice_training_time / Distributed_training_time
@@ -544,11 +595,6 @@ def benchmark_cloud_optimizations():
     
     # Benchmark batch processing optimizations with gradient accumulation
     part2_logger.info("Starting gradient accumulation batch processing benchmark...")
-    batch_processing_config = optimizer.optimize_batch_processing(target_batch_size=256, x_train=x_train, y_train=y_train)
-    
-    # Extract configuration from the object method
-    physical_batch_size = batch_processing_config["Physical Batch Size"]
-    training_step_function = batch_processing_config["Training Step Function"]
     
     # Measure throughput for different batch sizes
     batch_sizes_to_test = [64, 128, 256, 512, 1024]
@@ -557,67 +603,11 @@ def benchmark_cloud_optimizations():
     part2_logger.info("=== GRADIENT ACCUMULATION THROUGHPUT ANALYSIS ===")
     
     for test_batch_size in batch_sizes_to_test:
-        part2_logger.info(f"Testing throughput for batch size: {test_batch_size}")
+        # Call optimize_batch_processing for each target batch size
+        batch_processing_config = optimizer.optimize_batch_processing(target_batch_size=test_batch_size, x_train=x_train, y_train=y_train)
         
-        # Calculate accumulation steps
-        test_accumulation_steps = test_batch_size // physical_batch_size
-        
-        if test_accumulation_steps == 0:
-            part2_logger.warning(f"Skipping batch size {test_batch_size} - smaller than physical batch size {physical_batch_size}")
-            continue
-        
-        part2_logger.info(f"  Accumulation steps: {test_accumulation_steps}")
-        
-        # Create fresh model for each test
-        test_model_config = optimizer.baseline_model.get_config()
-        test_model_weights = optimizer.baseline_model.get_weights()
-        test_model = keras.Sequential.from_config(test_model_config)
-        test_model.set_weights(test_model_weights)
-        
-        test_optimizer = keras.optimizers.Adam(learning_rate=0.001)
-        test_model.compile(
-            optimizer=test_optimizer,
-            loss='sparse_categorical_crossentropy',
-            metrics=['accuracy']
-        )
-        
-        # Warm up
-        warmup_batch = x_train[:test_batch_size]
-        warmup_labels = y_train[:test_batch_size]
-        training_step_function(test_model, test_optimizer, warmup_batch, warmup_labels, test_accumulation_steps)
-        
-        # Measure throughput
-        start_time = time.time()
-        samples_processed = 0
-        num_batches = min(10, len(x_train) // test_batch_size)  # Limit to 10 batches
-        
-        for batch_idx in range(num_batches):
-            start_idx = batch_idx * test_batch_size
-            end_idx = min((batch_idx + 1) * test_batch_size, len(x_train))
-            
-            x_batch = x_train[start_idx:end_idx]
-            y_batch = y_train[start_idx:end_idx]
-            
-            training_step_function(test_model, test_optimizer, x_batch, y_batch, test_accumulation_steps)
-            samples_processed += len(x_batch)
-        
-        end_time = time.time()
-        training_time = end_time - start_time
-        
-        # Calculate throughput metrics
-        throughput_samples_per_sec = samples_processed / training_time
-        throughput_batches_per_sec = samples_processed / (test_batch_size * training_time)
-        
-        throughput_results[test_batch_size] = {
-            'training_time': training_time,
-            'samples_processed': samples_processed,
-            'throughput_samples_per_sec': throughput_samples_per_sec,
-            'throughput_batches_per_sec': throughput_batches_per_sec,
-            'accumulation_steps': test_accumulation_steps,
-            'physical_batch_size': physical_batch_size
-        }
-        
-        part2_logger.info(f"  Results: {throughput_samples_per_sec:.2f} samples/sec, {throughput_batches_per_sec:.2f} batches/sec")
+        # Extract throughput results
+        throughput_results[test_batch_size] = batch_processing_config["Throughput Results"]
     
     # Find optimal batch size based on throughput
     if throughput_results:
@@ -627,15 +617,18 @@ def benchmark_cloud_optimizations():
         part2_logger.info(f"Optimal batch size for throughput: {best_batch_size}")
         part2_logger.info(f"Best throughput: {throughput_results[best_batch_size]['throughput_samples_per_sec']:.2f} samples/sec")
         
+        # Get the configuration for the optimal batch size
+        optimal_config = optimizer.optimize_batch_processing(target_batch_size=best_batch_size, x_train=x_train, y_train=y_train)
+        
         # Combine results
         batch_processing_results = {
-            **batch_processing_config,
+            **optimal_config,
             "Throughput Results": throughput_results,
             "Optimal Batch Size": best_batch_size,
             "Best Throughput": throughput_results[best_batch_size]['throughput_samples_per_sec']
         }
     else:
-        batch_processing_results = batch_processing_config
+        batch_processing_results = {}
     
     results['Gradient Accumulation'] = batch_processing_results 
 
@@ -645,7 +638,7 @@ def benchmark_cloud_optimizations():
     
     # Benchmark knowledge distillation 
     teacher_model, student_model, distillation_training_function = optimizer.implement_knowledge_distillation()
-    distillation_training_function(teacher_model, student_model, (x_train, y_train), (x_test, y_test), batch_size=32, epochs=10)
+    distillation_training_function(teacher_model, student_model, (x_train, y_train), (x_test, y_test), batch_size=64, epochs=20)
 
     # TODO: Measure final student model performance vs teacher 
     student_model_metrics = streamlined_model_analysis(
