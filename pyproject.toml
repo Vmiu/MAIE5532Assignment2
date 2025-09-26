@@ -5,10 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "cmake>=4.1.0",
-    "matplotlib",
+    "matplotlib>=3.9.4",
     "scipy>=1.13.1",
     "tensorflow-model-optimization>=0.8.0",
-    "tensorflow[and-cuda]>=2.18.1",
-    "tf-keras>=2.18.0",
+    "tensorflow[and-cuda]==2.15.1",
+    "tf-keras>=2.15.1",
 ]

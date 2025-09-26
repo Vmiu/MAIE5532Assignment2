@@ -1,8 +1,5 @@
 import tensorflow as tf 
 
-from tensorflow import keras
-from tensorflow.keras import mixed_precision 
-
 import time
 
 import os
@@ -16,7 +13,7 @@ class CloudOptimizer:
 
     def __init__(self, baseline_model_path): 
 
-        self.baseline_model = keras.models.load_model(baseline_model_path)
+        self.baseline_model = tf.keras.models.load_model(baseline_model_path)
          
 
     def implement_mixed_precision(self): 
@@ -33,41 +30,65 @@ class CloudOptimizer:
 
         """ 
 
-        # TODO: Enable mixed precision policy 
-        tf.keras.mixed_precision.set_global_policy('mixed_float16')
+        # Store the original policy to restore later
+        original_policy = tf.keras.mixed_precision.global_policy()
+        
+        try:
+            # TODO: Enable mixed precision policy 
+            tf.keras.mixed_precision.set_global_policy('mixed_float16')
 
-        # TODO: Modify model for mixed precision compatibility
-        # Clone the baseline model without using its own dtype_policy
-        # Get the model configuration and weights
-        model_config = self.baseline_model.get_config()
-        model_weights = self.baseline_model.get_weights()
-        
-        # Create a new model from config
-        mixed_precision_model = keras.Sequential.from_config(model_config)
-        mixed_precision_model.set_weights(model_weights)
-        
-        # Explicitly set dtype policy for each layer to override original policies
-        for layer in mixed_precision_model.layers:
-            if hasattr(layer, 'dtype_policy'):
-                # Set mixed precision for all layers except the output layer
-                if layer == mixed_precision_model.layers[-1]:
-                    # Output layer should use float32 for numerical stability
-                    layer.dtype_policy = 'float32'
-                else:
-                    # All other layers use mixed precision
-                    layer.dtype_policy = 'mixed_float16'
-        
-        # TODO: Handle loss scaling appropriately
-        optimizer = keras.optimizers.Adam(learning_rate=0.0001)
-        optimizer = mixed_precision.LossScaleOptimizer(optimizer)
-        
-        mixed_precision_model.compile(
-            optimizer=optimizer, 
-            loss='sparse_categorical_crossentropy', 
-            metrics=['accuracy']
-        )
+            # TODO: Modify model for mixed precision compatibility
+            # Create a new model with logits output for mixed precision
+            # For mixed precision, we'll create a fresh model to avoid weight transfer issues
+            mixed_precision_model = tf.keras.Sequential([
+                tf.keras.layers.Conv2D(32, (3, 3), padding='same', input_shape=(32, 32, 3)),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.ReLU(),
+                tf.keras.layers.Conv2D(32, (3, 3), padding='same'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.ReLU(),
+                tf.keras.layers.MaxPooling2D((2, 2)),
 
-        return mixed_precision_model
+                tf.keras.layers.Conv2D(64, (3, 3), padding='same'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.ReLU(),
+                tf.keras.layers.Conv2D(64, (3, 3), padding='same'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.ReLU(),
+                tf.keras.layers.MaxPooling2D((2, 2)),
+
+                tf.keras.layers.Conv2D(128, (3, 3), padding='same'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.ReLU(),
+                tf.keras.layers.Conv2D(128, (3, 3), padding='same'),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.ReLU(),
+                tf.keras.layers.MaxPooling2D((2, 2)),
+                
+                tf.keras.layers.GlobalAveragePooling2D(),
+                tf.keras.layers.Dropout(0.5),
+                tf.keras.layers.Dense(256, activation='relu'),
+                tf.keras.layers.Dropout(0.3),
+                tf.keras.layers.Dense(10),  # No activation - outputs logits
+            ])
+            
+            # TODO: Handle loss scaling appropriately
+            # Create optimizer with proper loss scaling
+            optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+            optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
+            
+            # Compile with proper loss function for mixed precision
+            mixed_precision_model.compile(
+                optimizer=optimizer, 
+                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), 
+                metrics=['accuracy']
+            )
+
+            return mixed_precision_model
+            
+        finally:
+            # Restore the original policy
+            tf.keras.mixed_precision.set_global_policy(original_policy)
 
      
 
@@ -108,12 +129,12 @@ class CloudOptimizer:
         with tf_strategy.scope():
             model_config = self.baseline_model.get_config()
             model_weights = self.baseline_model.get_weights()
-            distributed_model = keras.Sequential.from_config(model_config)
+            distributed_model = tf.keras.Sequential.from_config(model_config)
             distributed_model.set_weights(model_weights)
 
         # TODO: Configure gradient synchronization 
         distributed_model.compile(
-            optimizer=keras.optimizers.Adam(learning_rate=0.001),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
             loss='sparse_categorical_crossentropy',
             metrics=['accuracy']
         )
@@ -148,11 +169,11 @@ class CloudOptimizer:
         # Create a copy of the baseline model for gradient accumulation training
         model_config = self.baseline_model.get_config()
         model_weights = self.baseline_model.get_weights()
-        ga_model = keras.Sequential.from_config(model_config)
+        ga_model = tf.keras.Sequential.from_config(model_config)
         ga_model.set_weights(model_weights)
         
         # Compile the model
-        optimizer = keras.optimizers.Adam(learning_rate=0.001)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         ga_model.compile(
             optimizer=optimizer,
             loss='sparse_categorical_crossentropy',
@@ -254,10 +275,10 @@ class CloudOptimizer:
         # Create fresh model for throughput testing
         test_model_config = self.baseline_model.get_config()
         test_model_weights = self.baseline_model.get_weights()
-        test_model = keras.Sequential.from_config(test_model_config)
+        test_model = tf.keras.Sequential.from_config(test_model_config)
         test_model.set_weights(test_model_weights)
         
-        test_optimizer = keras.optimizers.Adam(learning_rate=0.001)
+        test_optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         test_model.compile(
             optimizer=test_optimizer,
             loss='sparse_categorical_crossentropy',
@@ -329,52 +350,57 @@ class CloudOptimizer:
         # TODO: Create larger teacher model (2x parameters)
         # Create teacher model (same as baseline model)
         teacher_model_config = self.baseline_model.get_config()
-        teacher_model = keras.Sequential.from_config(teacher_model_config)
+        teacher_model = tf.keras.Sequential.from_config(teacher_model_config)
         teacher_model.set_weights(self.baseline_model.get_weights())
+        teacher_model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy']
+        )
 
         # Create a simpler student model
         # This avoids shape mismatch issues with BatchNormalization layers
-        student_model = keras.Sequential([
-            keras.layers.Input(shape=(32, 32, 3)),
+        student_model = tf.keras.Sequential([
+            tf.keras.layers.Input(shape=(32, 32, 3)),
             
             # Block 1: Reduced filters (16 instead of 32)
-            keras.layers.Conv2D(16, (3, 3), padding='same'),
-            keras.layers.BatchNormalization(),
-            keras.layers.ReLU(),
-            keras.layers.Conv2D(16, (3, 3), padding='same'),
-            keras.layers.BatchNormalization(),
-            keras.layers.ReLU(),
-            keras.layers.MaxPooling2D((2, 2)),
+            tf.keras.layers.Conv2D(16, (3, 3), padding='same'),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.ReLU(),
+            tf.keras.layers.Conv2D(16, (3, 3), padding='same'),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.ReLU(),
+            tf.keras.layers.MaxPooling2D((2, 2)),
 
             # Block 2: Reduced filters (32 instead of 64)
-            keras.layers.Conv2D(32, (3, 3), padding='same'),
-            keras.layers.BatchNormalization(),
-            keras.layers.ReLU(),
-            keras.layers.Conv2D(32, (3, 3), padding='same'),
-            keras.layers.BatchNormalization(),
-            keras.layers.ReLU(),
-            keras.layers.MaxPooling2D((2, 2)),
+            tf.keras.layers.Conv2D(32, (3, 3), padding='same'),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.ReLU(),
+            tf.keras.layers.Conv2D(32, (3, 3), padding='same'),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.ReLU(),
+            tf.keras.layers.MaxPooling2D((2, 2)),
 
             # Block 3: Reduced filters (64 instead of 128)
-            keras.layers.Conv2D(64, (3, 3), padding='same'),
-            keras.layers.BatchNormalization(),
-            keras.layers.ReLU(),
-            keras.layers.Conv2D(64, (3, 3), padding='same'),
-            keras.layers.BatchNormalization(),
-            keras.layers.ReLU(),
-            keras.layers.MaxPooling2D((2, 2)),
+            tf.keras.layers.Conv2D(64, (3, 3), padding='same'),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.ReLU(),
+            tf.keras.layers.Conv2D(64, (3, 3), padding='same'),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.ReLU(),
+            tf.keras.layers.MaxPooling2D((2, 2)),
             
             # Classifier: Reduced units (128 instead of 256)
-            keras.layers.GlobalAveragePooling2D(),
-            keras.layers.Dropout(0.5),
-            keras.layers.Dense(128, activation='relu'),
-            keras.layers.Dropout(0.3),
-            keras.layers.Dense(10, activation='softmax'),
+            tf.keras.layers.GlobalAveragePooling2D(),
+            tf.keras.layers.Dropout(0.5),
+            tf.keras.layers.Dense(128, activation='relu'),
+            tf.keras.layers.Dropout(0.3),
+            tf.keras.layers.Dense(10, activation='softmax'),
         ])
         
         # Compile the student model
         student_model.compile(
-            optimizer=keras.optimizers.Adam(learning_rate=0.001),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
             loss='sparse_categorical_crossentropy',
             metrics=['accuracy']
         )
@@ -396,11 +422,11 @@ class CloudOptimizer:
             y_student_soft = tf.nn.softmax(y_student / temperature)
             
             # Distillation loss (KL divergence between soft predictions)
-            distill_loss = keras.losses.KLDivergence()(y_teacher_soft, y_student_soft)
+            distill_loss = tf.keras.losses.KLDivergence()(y_teacher_soft, y_student_soft)
             distill_loss *= (temperature ** 2)  # Scale by temperature squared
             
             # Hard target loss (standard classification loss)
-            hard_loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)(y_true, y_student)
+            hard_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)(y_true, y_student)
             
             # Combined loss
             return alpha * distill_loss + (1 - alpha) * hard_loss
@@ -423,13 +449,13 @@ class CloudOptimizer:
             part2_logger.info("Starting knowledge distillation training...")
             
             # Set up optimizer for student model
-            optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
+            optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
             
             # Training metrics
-            train_loss_metric = keras.metrics.Mean()
-            train_acc_metric = keras.metrics.SparseCategoricalAccuracy()
-            val_loss_metric = keras.metrics.Mean()
-            val_acc_metric = keras.metrics.SparseCategoricalAccuracy()
+            train_loss_metric = tf. keras.metrics.Mean()
+            train_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
+            val_loss_metric = tf.keras.metrics.Mean()
+            val_acc_metric = tf.keras.metrics.SparseCategoricalAccuracy()
             
             @tf.function
             def train_step(x_batch, y_batch):
@@ -553,7 +579,7 @@ def benchmark_cloud_optimizations():
 
     # TODO: Measure training time, memory usage, accuracy 
     start_time = time.time()
-    history = MixedPrecisionModel.fit(x_train, y_train, epochs=20, batch_size=64, validation_data=(x_test, y_test), verbose=0)
+    history = MixedPrecisionModel.fit(x_train, y_train, epochs=20, batch_size=64, validation_data=(x_test, y_test), verbose=2)
     end_time = time.time()
     part2_logger.info(f"Training time: {end_time - start_time} seconds")
     
@@ -565,7 +591,7 @@ def benchmark_cloud_optimizations():
         MixedPrecisionModel, x_test, y_test, 64, 'part2_cloud_optimization/mixed_precision_model.keras', part2_logger
     )
     
-    # results['mixed_precision'] = mixed_precision_metrics
+    results['mixed_precision'] = mixed_precision_metrics
     
     ############################################################
     ############################################################

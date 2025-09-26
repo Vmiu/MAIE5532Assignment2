@@ -1,0 +1,319 @@
+GPU available: [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+Training time: 220.5358054637909 seconds
+
+============================================================
+🔍 STREAMLINED ANALYSIS: part2_cloud_optimization/mixed_precision_model.keras
+============================================================
+
+🏗️  ARCHITECTURE & MEMORY ANALYSIS
+--------------------------------------------------
+   Total Parameters: 324,394
+   Trainable Parameters: 323,498
+   Layer conv2d: 896 params, dtype=float32, policy=<Policy "mixed_float16">, size=3.50 KB
+   Layer batch_normalization: 128 params, dtype=float32, policy=<Policy "mixed_float16">, size=0.50 KB
+   Layer conv2d_1: 9,248 params, dtype=float32, policy=<Policy "mixed_float16">, size=36.12 KB
+   Layer batch_normalization_1: 128 params, dtype=float32, policy=<Policy "mixed_float16">, size=0.50 KB
+   Layer conv2d_2: 18,496 params, dtype=float32, policy=<Policy "mixed_float16">, size=72.25 KB
+   Layer batch_normalization_2: 256 params, dtype=float32, policy=<Policy "mixed_float16">, size=1.00 KB
+   Layer conv2d_3: 36,928 params, dtype=float32, policy=<Policy "mixed_float16">, size=144.25 KB
+   Layer batch_normalization_3: 256 params, dtype=float32, policy=<Policy "mixed_float16">, size=1.00 KB
+   Layer conv2d_4: 73,856 params, dtype=float32, policy=<Policy "mixed_float16">, size=288.50 KB
+   Layer batch_normalization_4: 512 params, dtype=float32, policy=<Policy "mixed_float16">, size=2.00 KB
+   Layer conv2d_5: 147,584 params, dtype=float32, policy=<Policy "mixed_float16">, size=576.50 KB
+   Layer batch_normalization_5: 512 params, dtype=float32, policy=<Policy "mixed_float16">, size=2.00 KB
+   Layer dense: 33,024 params, dtype=float32, policy=<Policy "mixed_float16">, size=129.00 KB
+   Layer dense_1: 2,570 params, dtype=float32, policy=<Policy "mixed_float16">, size=10.04 KB
+   Model File Size: 6.30 MB
+   Theoretical Memory: 1.24 MB
+   Training Memory: 5.70 MB
+   Inference Memory: 1.25 MB
+   Memory footprint: 6.95 MB
+
+⚡ PERFORMANCE & SPEED ANALYSIS
+--------------------------------------------------
+   Test Accuracy:67.27%
+   Test Loss: 0.9881
+   Single Sample Time: 3.01 ± 20.88 ms
+   GPU Available: Yes
+   GPU Memory Growth: True
+Distributed model compiled with OneDeviceStrategy
+Distributed model compiled with MirroredStrategy
+OneDevice training time: 68.14034008979797 seconds
+Distributed training time: 89.79997134208679 seconds
+scaling efficiency: 0.7588013567423318
+Starting gradient accumulation batch processing benchmark...
+=== GRADIENT ACCUMULATION THROUGHPUT ANALYSIS ===
+Testing throughput for batch size: 64
+  Accumulation steps: 1
+  Results: 3627.35 samples/sec, 56.68 batches/sec
+Testing throughput for batch size: 128
+  Accumulation steps: 2
+  Results: 4079.08 samples/sec, 31.87 batches/sec
+Testing throughput for batch size: 256
+  Accumulation steps: 4
+  Results: 3443.62 samples/sec, 13.45 batches/sec
+Testing throughput for batch size: 512
+  Accumulation steps: 8
+  Results: 3480.55 samples/sec, 6.80 batches/sec
+Testing throughput for batch size: 1024
+  Accumulation steps: 16
+  Results: 3442.31 samples/sec, 3.36 batches/sec
+Optimal batch size for throughput: 128
+Best throughput: 4079.08 samples/sec
+Testing throughput for batch size: 128
+  Accumulation steps: 2
+  Results: 4623.56 samples/sec, 36.12 batches/sec
+Starting knowledge distillation training...
+Batch 0/781 - Loss: 10.2866 - Acc: 0.0781
+Batch 100/781 - Loss: 9.9703 - Acc: 0.2163
+Batch 200/781 - Loss: 9.8542 - Acc: 0.2637
+Batch 300/781 - Loss: 9.7819 - Acc: 0.2922
+Batch 400/781 - Loss: 9.7186 - Acc: 0.3175
+Batch 500/781 - Loss: 9.6817 - Acc: 0.3381
+Batch 600/781 - Loss: 9.6205 - Acc: 0.3523
+Batch 700/781 - Loss: 9.5827 - Acc: 0.3665
+Epoch 1 - Train Loss: 9.5691 - Train Acc: 0.3782 - Val Loss: 9.9789 - Val Acc: 0.4772
+Batch 0/781 - Loss: 9.4144 - Acc: 0.3750
+Batch 100/781 - Loss: 9.3116 - Acc: 0.4865
+Batch 200/781 - Loss: 9.2853 - Acc: 0.4913
+Batch 300/781 - Loss: 9.2743 - Acc: 0.4975
+Batch 400/781 - Loss: 9.2562 - Acc: 0.5034
+Batch 500/781 - Loss: 9.2518 - Acc: 0.5123
+Batch 600/781 - Loss: 9.2203 - Acc: 0.5154
+Batch 700/781 - Loss: 9.2077 - Acc: 0.5195
+Epoch 2 - Train Loss: 9.2112 - Train Acc: 0.5234 - Val Loss: 10.1245 - Val Acc: 0.4629
+Batch 0/781 - Loss: 9.1701 - Acc: 0.5156
+Batch 100/781 - Loss: 9.1130 - Acc: 0.5588
+Batch 200/781 - Loss: 9.1075 - Acc: 0.5592
+Batch 300/781 - Loss: 9.0993 - Acc: 0.5642
+Batch 400/781 - Loss: 9.0896 - Acc: 0.5676
+Batch 500/781 - Loss: 9.0941 - Acc: 0.5717
+Batch 600/781 - Loss: 9.0684 - Acc: 0.5727
+Batch 700/781 - Loss: 9.0618 - Acc: 0.5740
+Epoch 3 - Train Loss: 9.0676 - Train Acc: 0.5769 - Val Loss: 9.6888 - Val Acc: 0.5805
+Batch 0/781 - Loss: 8.9884 - Acc: 0.5625
+Batch 100/781 - Loss: 9.0101 - Acc: 0.5961
+Batch 200/781 - Loss: 9.0085 - Acc: 0.5938
+Batch 300/781 - Loss: 9.0063 - Acc: 0.5966
+Batch 400/781 - Loss: 8.9983 - Acc: 0.5998
+Batch 500/781 - Loss: 9.0039 - Acc: 0.6029
+Batch 600/781 - Loss: 8.9797 - Acc: 0.6033
+Batch 700/781 - Loss: 8.9734 - Acc: 0.6050
+Epoch 4 - Train Loss: 8.9820 - Train Acc: 0.6072 - Val Loss: 9.9063 - Val Acc: 0.5330
+Batch 0/781 - Loss: 9.0516 - Acc: 0.5156
+Batch 100/781 - Loss: 8.9465 - Acc: 0.6180
+Batch 200/781 - Loss: 8.9398 - Acc: 0.6207
+Batch 300/781 - Loss: 8.9336 - Acc: 0.6254
+Batch 400/781 - Loss: 8.9236 - Acc: 0.6275
+Batch 500/781 - Loss: 8.9328 - Acc: 0.6301
+Batch 600/781 - Loss: 8.9103 - Acc: 0.6304
+Batch 700/781 - Loss: 8.9048 - Acc: 0.6313
+Epoch 5 - Train Loss: 8.9139 - Train Acc: 0.6334 - Val Loss: 9.6192 - Val Acc: 0.6142
+Batch 0/781 - Loss: 8.8530 - Acc: 0.5938
+Batch 100/781 - Loss: 8.8780 - Acc: 0.6473
+Batch 200/781 - Loss: 8.8776 - Acc: 0.6485
+Batch 300/781 - Loss: 8.8781 - Acc: 0.6503
+Batch 400/781 - Loss: 8.8705 - Acc: 0.6515
+Batch 500/781 - Loss: 8.8800 - Acc: 0.6541
+Batch 600/781 - Loss: 8.8566 - Acc: 0.6547
+Batch 700/781 - Loss: 8.8499 - Acc: 0.6555
+Epoch 6 - Train Loss: 8.8588 - Train Acc: 0.6577 - Val Loss: 9.5276 - Val Acc: 0.6447
+Batch 0/781 - Loss: 8.8104 - Acc: 0.6406
+Batch 100/781 - Loss: 8.8279 - Acc: 0.6692
+Batch 200/781 - Loss: 8.8320 - Acc: 0.6641
+Batch 300/781 - Loss: 8.8293 - Acc: 0.6662
+Batch 400/781 - Loss: 8.8222 - Acc: 0.6686
+Batch 500/781 - Loss: 8.8311 - Acc: 0.6705
+Batch 600/781 - Loss: 8.8107 - Acc: 0.6699
+Batch 700/781 - Loss: 8.8055 - Acc: 0.6713
+Epoch 7 - Train Loss: 8.8150 - Train Acc: 0.6733 - Val Loss: 9.3972 - Val Acc: 0.6837
+Batch 0/781 - Loss: 8.7603 - Acc: 0.6094
+Batch 100/781 - Loss: 8.7837 - Acc: 0.6870
+Batch 200/781 - Loss: 8.7846 - Acc: 0.6842
+Batch 300/781 - Loss: 8.7821 - Acc: 0.6847
+Batch 400/781 - Loss: 8.7791 - Acc: 0.6842
+Batch 500/781 - Loss: 8.7887 - Acc: 0.6862
+Batch 600/781 - Loss: 8.7684 - Acc: 0.6861
+Batch 700/781 - Loss: 8.7637 - Acc: 0.6878
+Epoch 8 - Train Loss: 8.7729 - Train Acc: 0.6898 - Val Loss: 9.4998 - Val Acc: 0.6543
+Batch 0/781 - Loss: 8.7509 - Acc: 0.7188
+Batch 100/781 - Loss: 8.7533 - Acc: 0.6989
+Batch 200/781 - Loss: 8.7582 - Acc: 0.6937
+Batch 300/781 - Loss: 8.7533 - Acc: 0.6948
+Batch 400/781 - Loss: 8.7464 - Acc: 0.6956
+Batch 500/781 - Loss: 8.7530 - Acc: 0.6998
+Batch 600/781 - Loss: 8.7335 - Acc: 0.6996
+Batch 700/781 - Loss: 8.7302 - Acc: 0.7004
+Epoch 9 - Train Loss: 8.7396 - Train Acc: 0.7028 - Val Loss: 9.4284 - Val Acc: 0.6773
+Batch 0/781 - Loss: 8.6529 - Acc: 0.7031
+Batch 100/781 - Loss: 8.7177 - Acc: 0.7124
+Batch 200/781 - Loss: 8.7197 - Acc: 0.7109
+Batch 300/781 - Loss: 8.7190 - Acc: 0.7110
+Batch 400/781 - Loss: 8.7116 - Acc: 0.7128
+Batch 500/781 - Loss: 8.7238 - Acc: 0.7133
+Batch 600/781 - Loss: 8.7051 - Acc: 0.7122
+Batch 700/781 - Loss: 8.7011 - Acc: 0.7130
+Epoch 10 - Train Loss: 8.7111 - Train Acc: 0.7145 - Val Loss: 9.3945 - Val Acc: 0.6909
+Batch 0/781 - Loss: 8.6989 - Acc: 0.7500
+Batch 100/781 - Loss: 8.6867 - Acc: 0.7314
+Batch 200/781 - Loss: 8.6927 - Acc: 0.7228
+Batch 300/781 - Loss: 8.6938 - Acc: 0.7206
+Batch 400/781 - Loss: 8.6857 - Acc: 0.7240
+Batch 500/781 - Loss: 8.6952 - Acc: 0.7261
+Batch 600/781 - Loss: 8.6763 - Acc: 0.7256
+Batch 700/781 - Loss: 8.6733 - Acc: 0.7258
+Epoch 11 - Train Loss: 8.6836 - Train Acc: 0.7278 - Val Loss: 9.4297 - Val Acc: 0.6867
+Batch 0/781 - Loss: 8.4755 - Acc: 0.8125
+Batch 100/781 - Loss: 8.6722 - Acc: 0.7350
+Batch 200/781 - Loss: 8.6708 - Acc: 0.7285
+Batch 300/781 - Loss: 8.6688 - Acc: 0.7315
+Batch 400/781 - Loss: 8.6652 - Acc: 0.7308
+Batch 500/781 - Loss: 8.6727 - Acc: 0.7346
+Batch 600/781 - Loss: 8.6545 - Acc: 0.7336
+Batch 700/781 - Loss: 8.6504 - Acc: 0.7342
+Epoch 12 - Train Loss: 8.6613 - Train Acc: 0.7355 - Val Loss: 9.4339 - Val Acc: 0.6869
+Batch 0/781 - Loss: 8.5862 - Acc: 0.7500
+Batch 100/781 - Loss: 8.6355 - Acc: 0.7508
+Batch 200/781 - Loss: 8.6422 - Acc: 0.7464
+Batch 300/781 - Loss: 8.6406 - Acc: 0.7454
+Batch 400/781 - Loss: 8.6361 - Acc: 0.7458
+Batch 500/781 - Loss: 8.6497 - Acc: 0.7458
+Batch 600/781 - Loss: 8.6324 - Acc: 0.7440
+Batch 700/781 - Loss: 8.6293 - Acc: 0.7448
+Epoch 13 - Train Loss: 8.6402 - Train Acc: 0.7463 - Val Loss: 9.3860 - Val Acc: 0.7002
+Batch 0/781 - Loss: 8.4534 - Acc: 0.8281
+Batch 100/781 - Loss: 8.6109 - Acc: 0.7605
+Batch 200/781 - Loss: 8.6226 - Acc: 0.7501
+Batch 300/781 - Loss: 8.6250 - Acc: 0.7489
+Batch 400/781 - Loss: 8.6222 - Acc: 0.7498
+Batch 500/781 - Loss: 8.6307 - Acc: 0.7513
+Batch 600/781 - Loss: 8.6110 - Acc: 0.7509
+Batch 700/781 - Loss: 8.6092 - Acc: 0.7504
+Epoch 14 - Train Loss: 8.6213 - Train Acc: 0.7515 - Val Loss: 9.3415 - Val Acc: 0.7107
+Batch 0/781 - Loss: 8.4492 - Acc: 0.8438
+Batch 100/781 - Loss: 8.6034 - Acc: 0.7627
+Batch 200/781 - Loss: 8.6150 - Acc: 0.7540
+Batch 300/781 - Loss: 8.6112 - Acc: 0.7548
+Batch 400/781 - Loss: 8.6083 - Acc: 0.7553
+Batch 500/781 - Loss: 8.6175 - Acc: 0.7575
+Batch 600/781 - Loss: 8.6000 - Acc: 0.7559
+Batch 700/781 - Loss: 8.5977 - Acc: 0.7555
+Epoch 15 - Train Loss: 8.6080 - Train Acc: 0.7572 - Val Loss: 9.3956 - Val Acc: 0.6953
+Batch 0/781 - Loss: 8.4324 - Acc: 0.8125
+Batch 100/781 - Loss: 8.5868 - Acc: 0.7684
+Batch 200/781 - Loss: 8.5968 - Acc: 0.7606
+Batch 300/781 - Loss: 8.6004 - Acc: 0.7605
+Batch 400/781 - Loss: 8.5956 - Acc: 0.7611
+Batch 500/781 - Loss: 8.6041 - Acc: 0.7635
+Batch 600/781 - Loss: 8.5878 - Acc: 0.7618
+Batch 700/781 - Loss: 8.5847 - Acc: 0.7617
+Epoch 16 - Train Loss: 8.5954 - Train Acc: 0.7628 - Val Loss: 9.4784 - Val Acc: 0.6697
+Batch 0/781 - Loss: 8.4839 - Acc: 0.7812
+Batch 100/781 - Loss: 8.5745 - Acc: 0.7703
+Batch 200/781 - Loss: 8.5868 - Acc: 0.7624
+Batch 300/781 - Loss: 8.5852 - Acc: 0.7627
+Batch 400/781 - Loss: 8.5809 - Acc: 0.7641
+Batch 500/781 - Loss: 8.5919 - Acc: 0.7660
+Batch 600/781 - Loss: 8.5742 - Acc: 0.7662
+Batch 700/781 - Loss: 8.5712 - Acc: 0.7662
+Epoch 17 - Train Loss: 8.5819 - Train Acc: 0.7679 - Val Loss: 9.5700 - Val Acc: 0.6506
+Batch 0/781 - Loss: 8.4369 - Acc: 0.8438
+Batch 100/781 - Loss: 8.5651 - Acc: 0.7766
+Batch 200/781 - Loss: 8.5741 - Acc: 0.7693
+Batch 300/781 - Loss: 8.5719 - Acc: 0.7709
+Batch 400/781 - Loss: 8.5677 - Acc: 0.7717
+Batch 500/781 - Loss: 8.5791 - Acc: 0.7740
+Batch 600/781 - Loss: 8.5611 - Acc: 0.7735
+Batch 700/781 - Loss: 8.5583 - Acc: 0.7732
+Epoch 18 - Train Loss: 8.5701 - Train Acc: 0.7748 - Val Loss: 9.2951 - Val Acc: 0.7353
+Batch 0/781 - Loss: 8.4437 - Acc: 0.8125
+Batch 100/781 - Loss: 8.5495 - Acc: 0.7843
+Batch 200/781 - Loss: 8.5623 - Acc: 0.7749
+Batch 300/781 - Loss: 8.5625 - Acc: 0.7742
+Batch 400/781 - Loss: 8.5586 - Acc: 0.7749
+Batch 500/781 - Loss: 8.5676 - Acc: 0.7781
+Batch 600/781 - Loss: 8.5506 - Acc: 0.7773
+Batch 700/781 - Loss: 8.5480 - Acc: 0.7775
+Epoch 19 - Train Loss: 8.5592 - Train Acc: 0.7786 - Val Loss: 9.3487 - Val Acc: 0.7191
+Batch 0/781 - Loss: 8.4322 - Acc: 0.8125
+Batch 100/781 - Loss: 8.5433 - Acc: 0.7856
+Batch 200/781 - Loss: 8.5545 - Acc: 0.7771
+Batch 300/781 - Loss: 8.5547 - Acc: 0.7768
+Batch 400/781 - Loss: 8.5493 - Acc: 0.7786
+Batch 500/781 - Loss: 8.5582 - Acc: 0.7815
+Batch 600/781 - Loss: 8.5396 - Acc: 0.7814
+Batch 700/781 - Loss: 8.5356 - Acc: 0.7825
+Epoch 20 - Train Loss: 8.5469 - Train Acc: 0.7837 - Val Loss: 9.3160 - Val Acc: 0.7237
+Knowledge distillation training completed!
+
+============================================================
+🔍 STREAMLINED ANALYSIS: part2_cloud_optimization/student_model.keras
+============================================================
+
+🏗️  ARCHITECTURE & MEMORY ANALYSIS
+--------------------------------------------------
+   Total Parameters: 82,586
+   Trainable Parameters: 82,138
+   Layer conv2d_6: 448 params, dtype=float32, policy=<Policy "float32">, size=1.75 KB
+   Layer batch_normalization_6: 64 params, dtype=float32, policy=<Policy "float32">, size=0.25 KB
+   Layer conv2d_7: 2,320 params, dtype=float32, policy=<Policy "float32">, size=9.06 KB
+   Layer batch_normalization_7: 64 params, dtype=float32, policy=<Policy "float32">, size=0.25 KB
+   Layer conv2d_8: 4,640 params, dtype=float32, policy=<Policy "float32">, size=18.12 KB
+   Layer batch_normalization_8: 128 params, dtype=float32, policy=<Policy "float32">, size=0.50 KB
+   Layer conv2d_9: 9,248 params, dtype=float32, policy=<Policy "float32">, size=36.12 KB
+   Layer batch_normalization_9: 128 params, dtype=float32, policy=<Policy "float32">, size=0.50 KB
+   Layer conv2d_10: 18,496 params, dtype=float32, policy=<Policy "float32">, size=72.25 KB
+   Layer batch_normalization_10: 256 params, dtype=float32, policy=<Policy "float32">, size=1.00 KB
+   Layer conv2d_11: 36,928 params, dtype=float32, policy=<Policy "float32">, size=144.25 KB
+   Layer batch_normalization_11: 256 params, dtype=float32, policy=<Policy "float32">, size=1.00 KB
+   Layer dense_2: 8,320 params, dtype=float32, policy=<Policy "float32">, size=32.50 KB
+   Layer dense_3: 1,290 params, dtype=float32, policy=<Policy "float32">, size=5.04 KB
+   Model File Size: 0.39 MB
+   Theoretical Memory: 0.32 MB
+   Training Memory: 2.01 MB
+   Inference Memory: 0.33 MB
+   Memory footprint: 2.34 MB
+
+⚡ PERFORMANCE & SPEED ANALYSIS
+--------------------------------------------------
+   Test Accuracy:72.38%
+   Test Loss: 1.0749
+   Single Sample Time: 3.25 ± 27.65 ms
+   GPU Available: Yes
+   GPU Memory Growth: True
+
+============================================================
+🔍 STREAMLINED ANALYSIS: part2_cloud_optimization/teacher_model.keras
+============================================================
+
+🏗️  ARCHITECTURE & MEMORY ANALYSIS
+--------------------------------------------------
+   Total Parameters: 324,394
+   Trainable Parameters: 0
+   Layer conv2d: 896 params, dtype=float32, policy=<Policy "float32">, size=3.50 KB
+   Layer batch_normalization: 128 params, dtype=float32, policy=<Policy "float32">, size=0.50 KB
+   Layer conv2d_1: 9,248 params, dtype=float32, policy=<Policy "float32">, size=36.12 KB
+   Layer batch_normalization_1: 128 params, dtype=float32, policy=<Policy "float32">, size=0.50 KB
+   Layer conv2d_2: 18,496 params, dtype=float32, policy=<Policy "float32">, size=72.25 KB
+   Layer batch_normalization_2: 256 params, dtype=float32, policy=<Policy "float32">, size=1.00 KB
+   Layer conv2d_3: 36,928 params, dtype=float32, policy=<Policy "float32">, size=144.25 KB
+   Layer batch_normalization_3: 256 params, dtype=float32, policy=<Policy "float32">, size=1.00 KB
+   Layer conv2d_4: 73,856 params, dtype=float32, policy=<Policy "float32">, size=288.50 KB
+   Layer batch_normalization_4: 512 params, dtype=float32, policy=<Policy "float32">, size=2.00 KB
+   Layer conv2d_5: 147,584 params, dtype=float32, policy=<Policy "float32">, size=576.50 KB
+   Layer batch_normalization_5: 512 params, dtype=float32, policy=<Policy "float32">, size=2.00 KB
+   Layer dense: 33,024 params, dtype=float32, policy=<Policy "float32">, size=129.00 KB
+   Layer dense_1: 2,570 params, dtype=float32, policy=<Policy "float32">, size=10.04 KB
+   Model File Size: 1.32 MB
+   Theoretical Memory: 1.24 MB
+   Training Memory: 5.70 MB
+   Inference Memory: 1.25 MB
+   Memory footprint: 6.95 MB
+
+⚡ PERFORMANCE & SPEED ANALYSIS
+--------------------------------------------------
+   Test Accuracy:81.66%
+   Test Loss: 1.4241
+   Single Sample Time: 2.41 ± 21.26 ms
+   GPU Available: Yes
+   GPU Memory Growth: True

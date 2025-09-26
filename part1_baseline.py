@@ -1,7 +1,5 @@
 import tensorflow as tf 
 
-from tensorflow import keras 
-
 import numpy as np 
 
 import matplotlib.pyplot as plt
@@ -33,44 +31,43 @@ def create_baseline_model():
 
     """ 
 
-    model = keras.Sequential([ 
+    model = tf.keras.models.Sequential([ 
 
         # TODO: Implement the required layers 
 
         # Block 1: Conv2D(32, 3x3) -> BatchNorm -> ReLU -> Conv2D(32, 3x3) -> BatchNorm -> ReLU -> MaxPool(2x2)
-        keras.layers.Input(shape=(32, 32, 3)),
-        keras.layers.Conv2D(32, (3, 3), padding='same'),
-        keras.layers.BatchNormalization(),
-        keras.layers.ReLU(),
-        keras.layers.Conv2D(32, (3, 3), padding='same'),
-        keras.layers.BatchNormalization(),
-        keras.layers.ReLU(),
-        keras.layers.MaxPooling2D((2, 2)),
+        tf.keras.layers.Conv2D(32, (3, 3), padding='same',input_shape=(32, 32, 3)),
+        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.Conv2D(32, (3, 3), padding='same'),
+        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.MaxPooling2D((2, 2)),
 
         # Block 2: Conv2D(64, 3x3) -> BatchNorm -> ReLU -> Conv2D(64, 3x3) -> BatchNorm -> ReLU -> MaxPool(2x2) 
-        keras.layers.Conv2D(64, (3, 3), padding='same'),
-        keras.layers.BatchNormalization(),
-        keras.layers.ReLU(),
-        keras.layers.Conv2D(64, (3, 3), padding='same'),
-        keras.layers.BatchNormalization(),
-        keras.layers.ReLU(),
-        keras.layers.MaxPooling2D((2, 2)),
+        tf.keras.layers.Conv2D(64, (3, 3), padding='same'),
+        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.Conv2D(64, (3, 3), padding='same'),
+        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.MaxPooling2D((2, 2)),
 
         # Block 3: Conv2D(128, 3x3) -> BatchNorm -> ReLU -> Conv2D(128, 3x3) -> BatchNorm -> ReLU -> MaxPool(2x2) 
-        keras.layers.Conv2D(128, (3, 3), padding='same'),
-        keras.layers.BatchNormalization(),
-        keras.layers.ReLU(),
-        keras.layers.Conv2D(128, (3, 3), padding='same'),
-        keras.layers.BatchNormalization(),
-        keras.layers.ReLU(),
-        keras.layers.MaxPooling2D((2, 2)),
+        tf.keras.layers.Conv2D(128, (3, 3), padding='same'),
+        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.Conv2D(128, (3, 3), padding='same'),
+        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.MaxPooling2D((2, 2)),
         
         # Classifier: GlobalAveragePooling2D -> Dropout(0.5) -> Dense(256) -> Dropout(0.3) -> Dense(10) 
-        keras.layers.GlobalAveragePooling2D(),
-        keras.layers.Dropout(0.5),
-        keras.layers.Dense(256, activation='relu'),
-        keras.layers.Dropout(0.3),
-        keras.layers.Dense(10, activation='softmax'),
+        tf.keras.layers.GlobalAveragePooling2D(),
+        tf.keras.layers.Dropout(0.5),
+        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dropout(0.3),
+        tf.keras.layers.Dense(10),
     ]) 
 
      
@@ -79,7 +76,7 @@ def create_baseline_model():
 
         optimizer='adam', 
 
-        loss='sparse_categorical_crossentropy', 
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
 
         metrics=['accuracy'] 
 
@@ -104,14 +101,14 @@ def load_and_preprocess_data():
     """ 
 
     # TODO: Load CIFAR-10 dataset 
-    (x_train, y_train), (x_test, y_test) = keras.datasets.cifar10.load_data()
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
     # Normalize pixel values to [0, 1] range 
     x_train = x_train / 255.0
     x_test = x_test / 255.0
 
     # Apply data augmentation for training set 
-    datagen = keras.preprocessing.image.ImageDataGenerator(
+    datagen = tf.keras.preprocessing.image.ImageDataGenerator(
         rotation_range=15,
         width_shift_range=0.1,
         height_shift_range=0.1,
@@ -159,13 +156,13 @@ def train_baseline_model(model, x_train, y_train, x_test, y_test):
 
     # TODO: Implement training with callbacks:
     # - EarlyStopping (patience=10) 
-    early_stopping = keras.callbacks.EarlyStopping(patience=10)
+    early_stopping = tf.keras.callbacks.EarlyStopping(patience=10)
     
     # - ReduceLROnPlateau 
-    reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=0.0001)
+    reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=0.0001)
     
     # - ModelCheckpoint
-    model_checkpoint = keras.callbacks.ModelCheckpoint('part1_baseline/best_model.keras', monitor='val_loss', save_best_only=True)
+    model_checkpoint = tf.keras.callbacks.ModelCheckpoint('part1_baseline/best_model.keras', monitor='val_loss', save_best_only=True)
     callbacks = [early_stopping, reduce_lr, model_checkpoint]
 
     # Train for maximum 50 epochs 
