@@ -128,200 +128,138 @@ class CloudOptimizer:
 
         """ 
 
-        Optimize for large batch processing typical in cloud environments. 
+        Optimize for large batch processing typical in cloud environments using gradient accumulation. 
 
          
 
         Args: 
 
-            target_batch_size: Target batch size for cloud deployment 
+            x_train: Training data features
+            y_train: Training data labels
+            target_batch_size: Target effective batch size for cloud deployment 
 
              
 
         Returns: 
 
-            dict: Optimized training configuration 
+            dict: Optimized training configuration
 
         """ 
 
-        # TODO: Implement gradient accumulation for large effective batch sizes
+        # Implement gradient accumulation for large effective batch sizes
         physical_batch_size = 64
         accumulation_steps = target_batch_size // physical_batch_size
         
-        part2_logger.info("Gradient Accumulation Configuration:")
-        part2_logger.info(f"Physical Batch Size: {physical_batch_size}")
-        part2_logger.info(f"Target Batch Size: {target_batch_size}")
-        part2_logger.info(f"Accumulation Steps: {accumulation_steps}")
-
-        # TODO: Optimize data pipeline for high throughput
-        # TODO: Configure prefetching and parallelism
-        def create_optimized_dataset(x, y, batch_size, shuffle_buffer_size=10000):
-            """
-            Create optimized tf.data pipeline with prefetching and parallelism
-            """
-            # Convert to tf.data.Dataset
-            dataset = tf.data.Dataset.from_tensor_slices((x, y))
-            
-            # Shuffle with optimal buffer size
-            if shuffle_buffer_size:
-                dataset = dataset.shuffle(
-                    buffer_size=shuffle_buffer_size,
-                    reshuffle_each_iteration=True
-                )
-            
-            # Batch the data
-            dataset = dataset.batch(batch_size, drop_remainder=True)
-            
-            # Optimize for performance
-            dataset = dataset.map(
-                lambda x, y: (tf.cast(x, tf.float32), tf.cast(y, tf.int32)),
-                num_parallel_calls=tf.data.AUTOTUNE
-            )
-            
-            # Prefetch for optimal performance
-            dataset = dataset.prefetch(tf.data.AUTOTUNE)
-            
-            return dataset
-    
-        # Create optimized dataset
-        train_dataset = create_optimized_dataset(
-            x_train, y_train, 
-            physical_batch_size,
-            shuffle_buffer_size=min(10000, len(x_train))
+        part2_logger.info(f"Implementing gradient accumulation:")
+        part2_logger.info(f"  Target batch size: {target_batch_size}")
+        part2_logger.info(f"  Physical batch size: {physical_batch_size}")
+        part2_logger.info(f"  Accumulation steps: {accumulation_steps}")
+        
+        # Create a copy of the baseline model for gradient accumulation training
+        model_config = self.baseline_model.get_config()
+        model_weights = self.baseline_model.get_weights()
+        ga_model = keras.Sequential.from_config(model_config)
+        ga_model.set_weights(model_weights)
+        
+        # Compile the model
+        optimizer = keras.optimizers.Adam(learning_rate=0.001)
+        ga_model.compile(
+            optimizer=optimizer,
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy']
         )
-
-        # Gradient Accumulation training function
-        def gradient_accumulation_training(model, dataset, optimizer, loss_fn, 
-                                        accumulation_steps, epochs=10, 
-                                        validation_data=None):
-            """
-            Training function with gradient accumulation
+        
+        # Optimize data pipeline for high throughput
+        # Create tf.data.Dataset with prefetching and parallelism
+        train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+        train_dataset = train_dataset.batch(physical_batch_size)
+        train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
+        train_dataset = train_dataset.cache()
+        
+        # Training step that handles both normal and gradient accumulation
+        def training_step(model, optimizer, x_batch, y_batch, accumulation_steps):
+            """Training step that handles both normal training and gradient accumulation"""
             
-            Args:
-                model: Keras model to train
-                dataset: tf.data.Dataset for training
-                optimizer: Keras optimizer
-                loss_fn: Loss function
-                accumulation_steps: Number of steps to accumulate gradients
-                epochs: Number of training epochs
-                validation_data: Optional validation dataset
-            """
-            
-            # Metrics
-            train_loss_metric = tf.keras.metrics.Mean()
-            train_accuracy_metric = tf.keras.metrics.SparseCategoricalAccuracy()
-            
-            if validation_data:
-                val_loss_metric = tf.keras.metrics.Mean()
-                val_accuracy_metric = tf.keras.metrics.SparseCategoricalAccuracy()
-            
-            @tf.function
-            def accumulate_gradients(x_batch, y_batch):
-                """Accumulate gradients for a single batch"""
-                with tf.GradientTape() as tape:
-                    predictions = model(x_batch, training=True)
-                    # Scale loss by accumulation steps to get proper average
-                    loss = loss_fn(y_batch, predictions) / accumulation_steps
-                
-                # Calculate gradients
-                gradients = tape.gradient(loss, model.trainable_variables)
-                return gradients, loss, predictions
-            
-            @tf.function
-            def apply_accumulated_gradients(accumulated_gradients):
-                """Apply accumulated gradients to model"""
-                optimizer.apply_gradients(zip(accumulated_gradients, model.trainable_variables))
-            
-            @tf.function
-            def validation_step(x_batch, y_batch):
-                """Validation step"""
-                predictions = model(x_batch, training=False)
-                loss = loss_fn(y_batch, predictions)
-                return loss, predictions
-            
-            # Training loop
-            for epoch in range(epochs):
-                print(f"\nEpoch {epoch + 1}/{epochs}")
-                
-                # Reset metrics
-                train_loss_metric.reset_states()
-                train_accuracy_metric.reset_states()
-                
-                # Initialize accumulated gradients
-                accumulated_gradients = [tf.zeros_like(var) for var in model.trainable_variables]
-                
-                step_count = 0
-                batch_count = 0
-                epoch_start_time = time.time()
-                
-                for x_batch, y_batch in dataset:
-                    batch_count += 1
+            try:
+                if accumulation_steps == 1:
+                    # Normal training - no accumulation needed
+                    with tf.GradientTape() as tape:
+                        predictions = model(x_batch, training=True)
+                        loss = tf.keras.losses.sparse_categorical_crossentropy(y_batch, predictions)
+                        loss = tf.reduce_mean(loss)
                     
-                    # Accumulate gradients
-                    gradients, loss, predictions = accumulate_gradients(x_batch, y_batch)
+                    gradients = tape.gradient(loss, model.trainable_variables)
                     
-                    # Add to accumulated gradients
-                    for i, grad in enumerate(gradients):
-                        accumulated_gradients[i] = accumulated_gradients[i] + grad
+                    # Filter out None gradients
+                    valid_gradients = []
+                    valid_variables = []
+                    if gradients is not None:
+                        for grad, var in zip(gradients, model.trainable_variables):
+                            if grad is not None:
+                                valid_gradients.append(grad)
+                                valid_variables.append(var)
                     
-                    # Update metrics
-                    train_loss_metric.update_state(loss * accumulation_steps)  # Unscale for display
-                    train_accuracy_metric.update_state(y_batch, predictions)
+                    if valid_gradients:
+                        optimizer.apply_gradients(zip(valid_gradients, valid_variables))
                     
-                    step_count += 1
-                    
-                    # Apply gradients when accumulation is complete
-                    if step_count % accumulation_steps == 0:
-                        apply_accumulated_gradients(accumulated_gradients)
-                        
-                        # Reset accumulated gradients
-                        accumulated_gradients = [tf.zeros_like(var) for var in model.trainable_variables]
-                        
-                        # Print progress
-                        if (step_count // accumulation_steps) % 10 == 0:
-                            current_loss = train_loss_metric.result()
-                            current_acc = train_accuracy_metric.result()
-                            print(f"Step {step_count // accumulation_steps} - "
-                                f"Loss: {current_loss:.4f} - "
-                                f"Accuracy: {current_acc:.4f}")
+                    return loss
                 
-                # Apply any remaining accumulated gradients
-                if step_count % accumulation_steps != 0:
-                    # Scale remaining gradients properly
-                    scale_factor = accumulation_steps / (step_count % accumulation_steps)
-                    scaled_gradients = [grad * scale_factor for grad in accumulated_gradients]
-                    apply_accumulated_gradients(scaled_gradients)
-                
-                epoch_time = time.time() - epoch_start_time
-                
-                # Validation
-                if validation_data:
-                    val_loss_metric.reset_states()
-                    val_accuracy_metric.reset_states()
-                    
-                    for x_val, y_val in validation_data:
-                        val_loss, val_predictions = validation_step(x_val, y_val)
-                        val_loss_metric.update_state(val_loss)
-                        val_accuracy_metric.update_state(y_val, val_predictions)
-                    
-                    print(f"Epoch {epoch + 1} - "
-                        f"Time: {epoch_time:.2f}s - "
-                        f"Loss: {train_loss_metric.result():.4f} - "
-                        f"Accuracy: {train_accuracy_metric.result():.4f} - "
-                        f"Val Loss: {val_loss_metric.result():.4f} - "
-                        f"Val Accuracy: {val_accuracy_metric.result():.4f}")
                 else:
-                    print(f"Epoch {epoch + 1} - "
-                        f"Time: {epoch_time:.2f}s - "
-                        f"Loss: {train_loss_metric.result():.4f} - "
-                        f"Accuracy: {train_accuracy_metric.result():.4f}")
-            
-                return model
+                    # Gradient accumulation for larger batch sizes
+                    total_loss = 0.0
+                    accumulated_gradients = None
+                    
+                    for i in range(accumulation_steps):
+                        start_idx = i * physical_batch_size
+                        end_idx = min((i + 1) * physical_batch_size, len(x_batch))
+                        
+                        if start_idx >= len(x_batch):
+                            break
+                            
+                        x_sub_batch = x_batch[start_idx:end_idx]
+                        y_sub_batch = y_batch[start_idx:end_idx]
+                        
+                        with tf.GradientTape() as tape:
+                            predictions = model(x_sub_batch, training=True)
+                            loss = tf.keras.losses.sparse_categorical_crossentropy(y_sub_batch, predictions)
+                            loss = tf.reduce_mean(loss)
+                            scaled_loss = loss / accumulation_steps
+                        
+                        gradients = tape.gradient(scaled_loss, model.trainable_variables)
+                        
+                        if gradients is not None:
+                            if accumulated_gradients is None:
+                                accumulated_gradients = gradients
+                            else:
+                                accumulated_gradients = [acc_grad + grad for acc_grad, grad in zip(accumulated_gradients, gradients)]
+                        
+                        total_loss += loss
+                    
+                    # Apply accumulated gradients
+                    valid_gradients = []
+                    valid_variables = []
+                    if accumulated_gradients is not None:
+                        for grad, var in zip(accumulated_gradients, model.trainable_variables):
+                            if grad is not None:
+                                valid_gradients.append(grad)
+                                valid_variables.append(var)
+                    
+                    if valid_gradients:
+                        optimizer.apply_gradients(zip(valid_gradients, valid_variables))
+                    
+                    return total_loss / accumulation_steps
+                    
+            except Exception as e:
+                part2_logger.error(f"Training step failed: {e}")
+                raise e
+
         return {
-            "physical_batch_size": physical_batch_size,
-            "accumulation_steps": accumulation_steps,
-            "train_dataset": train_dataset,
-            "gradient_accumulation_training": gradient_accumulation_training
+            "Physical Batch Size": physical_batch_size,
+            "Target Batch Size": target_batch_size,
+            "Accumulation Steps": accumulation_steps,
+            "Training Step Function": training_step,
+            "Optimized Model": ga_model,
+            "Optimizer": optimizer
         }
      
 
@@ -559,74 +497,167 @@ def benchmark_cloud_optimizations():
     ############################################################
     ############################################################
 
-    # # Benchmark mixed precision 
-    # MixedPrecisionModel = optimizer.implement_mixed_precision()
+    # Benchmark mixed precision 
+    MixedPrecisionModel = optimizer.implement_mixed_precision()
 
-    # # TODO: Measure training time, memory usage, accuracy 
-    # start_time = time.time()
-    # history = MixedPrecisionModel.fit(x_train, y_train, epochs=20, batch_size=64, validation_data=(x_test, y_test), verbose=0)
-    # end_time = time.time()
-    # part2_logger.info(f"Training time: {end_time - start_time} seconds")
+    # TODO: Measure training time, memory usage, accuracy 
+    start_time = time.time()
+    history = MixedPrecisionModel.fit(x_train, y_train, epochs=20, batch_size=64, validation_data=(x_test, y_test), verbose=0)
+    end_time = time.time()
+    part2_logger.info(f"Training time: {end_time - start_time} seconds")
     
-    # # # Save the model for analysis
-    # MixedPrecisionModel.save('part2_cloud_optimization/mixed_precision_model.keras')
+    # # Save the model for analysis
+    MixedPrecisionModel.save('part2_cloud_optimization/mixed_precision_model.keras')
 
-    # # # Use streamlined analysis for comprehensive metrics
-    # mixed_precision_metrics = streamlined_model_analysis(
-    #     MixedPrecisionModel, x_test, y_test, 64, 'part2_cloud_optimization/mixed_precision_model.keras', part2_logger
-    # )
+    # # Use streamlined analysis for comprehensive metrics
+    mixed_precision_metrics = streamlined_model_analysis(
+        MixedPrecisionModel, x_test, y_test, 64, 'part2_cloud_optimization/mixed_precision_model.keras', part2_logger
+    )
     
     # metrics['mixed_precision'] = mixed_precision_metrics
     
     ############################################################
     ############################################################
     
-    # # Benchmark model parallelism 
-    # OneDeviceModel, tf_strategy = optimizer.implement_model_parallelism(strategy='onedevice')
-    # DistributedModel, tf_strategy = optimizer.implement_model_parallelism(strategy='mirrored')
-    # # TODO: Measure scaling efficiency across multiple GPUs 
-    # OneDeviceTime_start = time.time()
-    # OneDeviceModel.fit(x_train, y_train, epochs=20, batch_size=64, validation_data=(x_test, y_test), verbose=0)
-    # OneDevice_training_time = time.time() - OneDeviceTime_start
-    # DistributedTime_start = time.time()
-    # DistributedModel.fit(x_train, y_train, epochs=20, batch_size=64, validation_data=(x_test, y_test), verbose=0)
-    # Distributed_training_time = time.time() - DistributedTime_start
-    # part2_logger.info(f"OneDevice training time: {OneDevice_training_time} seconds")
-    # part2_logger.info(f"Distributed training time: {Distributed_training_time} seconds")
-    # part2_logger.info(f"scaling efficiency: {OneDevice_training_time / Distributed_training_time}")
+    # Benchmark model parallelism 
+    OneDeviceModel, tf_strategy = optimizer.implement_model_parallelism(strategy='onedevice')
+    DistributedModel, tf_strategy = optimizer.implement_model_parallelism(strategy='mirrored')
+    # TODO: Measure scaling efficiency across multiple GPUs 
+    OneDeviceTime_start = time.time()
+    OneDeviceModel.fit(x_train, y_train, epochs=20, batch_size=64, validation_data=(x_test, y_test), verbose=0)
+    OneDevice_training_time = time.time() - OneDeviceTime_start
+    DistributedTime_start = time.time()
+    DistributedModel.fit(x_train, y_train, epochs=20, batch_size=64, validation_data=(x_test, y_test), verbose=0)
+    Distributed_training_time = time.time() - DistributedTime_start
+    part2_logger.info(f"OneDevice training time: {OneDevice_training_time} seconds")
+    part2_logger.info(f"Distributed training time: {Distributed_training_time} seconds")
+    part2_logger.info(f"scaling efficiency: {OneDevice_training_time / Distributed_training_time}")
     
-    # metrics['Model Parallelism'] = {
-    #     'OneDevice_training_time': OneDevice_training_time, 
-    #     'Distributed_training_time': Distributed_training_time, 
-    #     'scaling_efficiency': OneDevice_training_time / Distributed_training_time
-    # }
+    metrics['Model Parallelism'] = {
+        'OneDevice_training_time': OneDevice_training_time, 
+        'Distributed_training_time': Distributed_training_time, 
+        'scaling_efficiency': OneDevice_training_time / Distributed_training_time
+    }
 
     ############################################################
     ############################################################
     
-    # Benchmark batch processing optimizations  
-    # optimized_batch_processing = optimizer.optimize_batch_processing(target_batch_size=256, x_train=x_train, y_train=y_train)
-    # TODO: Measure throughput at different batch sizes 
+    # Benchmark batch processing optimizations with gradient accumulation
+    part2_logger.info("Starting gradient accumulation batch processing benchmark...")
+    batch_processing_config = optimizer.optimize_batch_processing(target_batch_size=256, x_train=x_train, y_train=y_train)
+    
+    # Extract configuration from the object method
+    physical_batch_size = batch_processing_config["Physical Batch Size"]
+    training_step_function = batch_processing_config["Training Step Function"]
+    
+    # Measure throughput for different batch sizes
+    batch_sizes_to_test = [64, 128, 256, 512, 1024]
+    throughput_results = {}
+    
+    part2_logger.info("=== GRADIENT ACCUMULATION THROUGHPUT ANALYSIS ===")
+    
+    for test_batch_size in batch_sizes_to_test:
+        part2_logger.info(f"Testing throughput for batch size: {test_batch_size}")
+        
+        # Calculate accumulation steps
+        test_accumulation_steps = test_batch_size // physical_batch_size
+        
+        if test_accumulation_steps == 0:
+            part2_logger.warning(f"Skipping batch size {test_batch_size} - smaller than physical batch size {physical_batch_size}")
+            continue
+        
+        part2_logger.info(f"  Accumulation steps: {test_accumulation_steps}")
+        
+        # Create fresh model for each test
+        test_model_config = optimizer.baseline_model.get_config()
+        test_model_weights = optimizer.baseline_model.get_weights()
+        test_model = keras.Sequential.from_config(test_model_config)
+        test_model.set_weights(test_model_weights)
+        
+        test_optimizer = keras.optimizers.Adam(learning_rate=0.001)
+        test_model.compile(
+            optimizer=test_optimizer,
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy']
+        )
+        
+        # Warm up
+        warmup_batch = x_train[:test_batch_size]
+        warmup_labels = y_train[:test_batch_size]
+        training_step_function(test_model, test_optimizer, warmup_batch, warmup_labels, test_accumulation_steps)
+        
+        # Measure throughput
+        start_time = time.time()
+        samples_processed = 0
+        num_batches = min(10, len(x_train) // test_batch_size)  # Limit to 10 batches
+        
+        for batch_idx in range(num_batches):
+            start_idx = batch_idx * test_batch_size
+            end_idx = min((batch_idx + 1) * test_batch_size, len(x_train))
+            
+            x_batch = x_train[start_idx:end_idx]
+            y_batch = y_train[start_idx:end_idx]
+            
+            training_step_function(test_model, test_optimizer, x_batch, y_batch, test_accumulation_steps)
+            samples_processed += len(x_batch)
+        
+        end_time = time.time()
+        training_time = end_time - start_time
+        
+        # Calculate throughput metrics
+        throughput_samples_per_sec = samples_processed / training_time
+        throughput_batches_per_sec = samples_processed / (test_batch_size * training_time)
+        
+        throughput_results[test_batch_size] = {
+            'training_time': training_time,
+            'samples_processed': samples_processed,
+            'throughput_samples_per_sec': throughput_samples_per_sec,
+            'throughput_batches_per_sec': throughput_batches_per_sec,
+            'accumulation_steps': test_accumulation_steps,
+            'physical_batch_size': physical_batch_size
+        }
+        
+        part2_logger.info(f"  Results: {throughput_samples_per_sec:.2f} samples/sec, {throughput_batches_per_sec:.2f} batches/sec")
+    
+    # Find optimal batch size based on throughput
+    if throughput_results:
+        best_batch_size = max(throughput_results.keys(), 
+                            key=lambda x: throughput_results[x]['throughput_samples_per_sec'])
+        
+        part2_logger.info(f"Optimal batch size for throughput: {best_batch_size}")
+        part2_logger.info(f"Best throughput: {throughput_results[best_batch_size]['throughput_samples_per_sec']:.2f} samples/sec")
+        
+        # Combine results
+        batch_processing_results = {
+            **batch_processing_config,
+            "Throughput Results": throughput_results,
+            "Optimal Batch Size": best_batch_size,
+            "Best Throughput": throughput_results[best_batch_size]['throughput_samples_per_sec']
+        }
+    else:
+        batch_processing_results = batch_processing_config
+    
+    results['Gradient Accumulation'] = batch_processing_results 
 
     
     ############################################################
     ############################################################
     
-    # # Benchmark knowledge distillation 
-    # teacher_model, student_model, distillation_training_function = optimizer.implement_knowledge_distillation()
-    # distillation_training_function(teacher_model, student_model, (x_train, y_train), (x_test, y_test), batch_size=32, epochs=10)
+    # Benchmark knowledge distillation 
+    teacher_model, student_model, distillation_training_function = optimizer.implement_knowledge_distillation()
+    distillation_training_function(teacher_model, student_model, (x_train, y_train), (x_test, y_test), batch_size=32, epochs=10)
 
-    # # TODO: Measure final student model performance vs teacher 
-    # student_model_metrics = streamlined_model_analysis(
-    #     student_model, x_test, y_test, 64, 'part2_cloud_optimization/student_model.keras', part2_logger
-    # )
-    # teacher_model_metrics = streamlined_model_analysis(
-    #     teacher_model, x_test, y_test, 64, 'part2_cloud_optimization/teacher_model.keras', part2_logger
-    # )
-    # results['Knowledge Distillation'] = {
-    #     'student_model_metrics': student_model_metrics,
-    #     'teacher_model_metrics': teacher_model_metrics
-    # }
+    # TODO: Measure final student model performance vs teacher 
+    student_model_metrics = streamlined_model_analysis(
+        student_model, x_test, y_test, 64, 'part2_cloud_optimization/student_model.keras', part2_logger
+    )
+    teacher_model_metrics = streamlined_model_analysis(
+        teacher_model, x_test, y_test, 64, 'part2_cloud_optimization/teacher_model.keras', part2_logger
+    )
+    results['Knowledge Distillation'] = {
+        'student_model_metrics': student_model_metrics,
+        'teacher_model_metrics': teacher_model_metrics
+    }
 
     return results 
 
