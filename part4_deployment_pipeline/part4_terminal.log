@@ -1,0 +1,96 @@
+Optimizing for cloud
+Distributed mixed precision model compiled
+Distributed Strategy: MirroredStrategy
+Layer: conv2d, dtype: <Policy "mixed_float16">
+Layer: batch_normalization, dtype: <Policy "mixed_float16">
+Layer: re_lu, dtype: <Policy "mixed_float16">
+Layer: conv2d_1, dtype: <Policy "mixed_float16">
+Layer: batch_normalization_1, dtype: <Policy "mixed_float16">
+Layer: re_lu_1, dtype: <Policy "mixed_float16">
+Layer: max_pooling2d, dtype: <Policy "mixed_float16">
+Layer: conv2d_2, dtype: <Policy "mixed_float16">
+Layer: batch_normalization_2, dtype: <Policy "mixed_float16">
+Layer: re_lu_2, dtype: <Policy "mixed_float16">
+Layer: conv2d_3, dtype: <Policy "mixed_float16">
+Layer: batch_normalization_3, dtype: <Policy "mixed_float16">
+Layer: re_lu_3, dtype: <Policy "mixed_float16">
+Layer: max_pooling2d_1, dtype: <Policy "mixed_float16">
+Layer: conv2d_4, dtype: <Policy "mixed_float16">
+Layer: batch_normalization_4, dtype: <Policy "mixed_float16">
+Layer: re_lu_4, dtype: <Policy "mixed_float16">
+Layer: conv2d_5, dtype: <Policy "mixed_float16">
+Layer: batch_normalization_5, dtype: <Policy "mixed_float16">
+Layer: re_lu_5, dtype: <Policy "mixed_float16">
+Layer: max_pooling2d_2, dtype: <Policy "mixed_float16">
+Layer: global_average_pooling2d, dtype: <Policy "mixed_float16">
+Layer: dropout, dtype: <Policy "mixed_float16">
+Layer: dense, dtype: <Policy "mixed_float16">
+Layer: dropout_1, dtype: <Policy "mixed_float16">
+Layer: dense_1, dtype: <Policy "mixed_float16">
+Training distributed mixed precision model
+Time taken to train distributed mixed precision model: 144.14808058738708 seconds
+
+============================================================
+🔍 STREAMLINED ANALYSIS: part4_deployment_pipeline/distributed_mixed_precision_model.keras
+============================================================
+
+🏗️  ARCHITECTURE & MEMORY ANALYSIS
+--------------------------------------------------
+   Total Parameters: 324,394
+   Trainable Parameters: 323,498
+   Layer conv2d: 896 params, dtype=float32, policy=<Policy "mixed_float16">, size=3.50 KB
+   Layer batch_normalization: 128 params, dtype=float32, policy=<Policy "mixed_float16">, size=0.50 KB
+   Layer conv2d_1: 9,248 params, dtype=float32, policy=<Policy "mixed_float16">, size=36.12 KB
+   Layer batch_normalization_1: 128 params, dtype=float32, policy=<Policy "mixed_float16">, size=0.50 KB
+   Layer conv2d_2: 18,496 params, dtype=float32, policy=<Policy "mixed_float16">, size=72.25 KB
+   Layer batch_normalization_2: 256 params, dtype=float32, policy=<Policy "mixed_float16">, size=1.00 KB
+   Layer conv2d_3: 36,928 params, dtype=float32, policy=<Policy "mixed_float16">, size=144.25 KB
+   Layer batch_normalization_3: 256 params, dtype=float32, policy=<Policy "mixed_float16">, size=1.00 KB
+   Layer conv2d_4: 73,856 params, dtype=float32, policy=<Policy "mixed_float16">, size=288.50 KB
+   Layer batch_normalization_4: 512 params, dtype=float32, policy=<Policy "mixed_float16">, size=2.00 KB
+   Layer conv2d_5: 147,584 params, dtype=float32, policy=<Policy "mixed_float16">, size=576.50 KB
+   Layer batch_normalization_5: 512 params, dtype=float32, policy=<Policy "mixed_float16">, size=2.00 KB
+   Layer dense: 33,024 params, dtype=float32, policy=<Policy "mixed_float16">, size=129.00 KB
+   Layer dense_1: 2,570 params, dtype=float32, policy=<Policy "mixed_float16">, size=10.04 KB
+   Model File Size: 6.30 MB
+   Theoretical Memory: 1.24 MB
+   Training Memory: 5.70 MB
+   Inference Memory: 1.25 MB
+   Memory footprint: 6.95 MB
+
+⚡ PERFORMANCE & SPEED ANALYSIS
+--------------------------------------------------
+   Test Accuracy:79.90%
+   Test Loss: 0.6143
+   Single Sample Time: 12.71 ± 129.64 ms
+   GPU Available: Yes
+   GPU Memory Growth: None
+Optimizing for edge
+Implementing pruning
+Finetuning pruned model
+Applying dynamic range quantization
+Saving edge optimized model to: part4_deployment_pipeline/edge_optimized_model.tflite
+Measuring model accuracy and latency
+Input type: <class 'numpy.float32'>, Quantization: (0.0, 0)
+Output type: <class 'numpy.float32'>, Quantization: (0.0, 0)
+Model accuracy: 0.7888
+Model latency: 1.159913992881775 ms
+Model size: 2.4809646606445312 MB
+Optimizing for tinyML
+Implementing architecture optimization
+Implementing pruning
+Finetuning pruned model
+Applying float16 quantization
+Saving tinyML optimized model to: part4_deployment_pipeline/tinyML_optimized_model.tflite
+Measuring model accuracy and latency
+Input type: <class 'numpy.float32'>, Quantization: (0.0, 0)
+Output type: <class 'numpy.float32'>, Quantization: (0.0, 0)
+Model accuracy: 0.5456
+Model latency: 0.9134440898895264 ms
+Model size: 4.036060333251953 MB
+For use case cloud_server, deploy with ['mixed_precision', 'distributed'] to achieve the best performance
+For use case edge_device, deploy with ['0.5_pruning', 'dynamic_range_quantization'] to achieve the best performance
+For use case microcontroller, deploy with ['architecture_optimization', '0.75_pruning', 'float16_quantization'] to achieve the best performance
+The targets that meet the performance requirements are: {'cloud_server': 'cloud_server', 'edge_device': 'edge_device'}
+Multi-Scale Optimization Complete!
+Report saved to: multi_scale_optimization_report.json

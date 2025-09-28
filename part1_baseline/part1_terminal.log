@@ -1,6 +1,6 @@
 GPU available: [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
 Training baseline model for 50 epochs
-🕒 Total time taken to train baseline model: 151.21 seconds
+🕒 Total time taken to train baseline model: 131.32 seconds
 
 ============================================================
 🔍 STREAMLINED ANALYSIS: part1_baseline/best_model.keras
@@ -32,8 +32,8 @@ Training baseline model for 50 epochs
 
 ⚡ PERFORMANCE & SPEED ANALYSIS
 --------------------------------------------------
-   Test Accuracy:82.58%
-   Test Loss: 0.6838
-   Single Sample Time: 3.35 ± 34.93 ms
+   Test Accuracy:81.64%
+   Test Loss: 0.8012
+   Single Sample Time: 3.32 ± 35.23 ms
    GPU Available: Yes
    GPU Memory Growth: True

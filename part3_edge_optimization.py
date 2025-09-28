@@ -17,7 +17,7 @@ from part1_baseline import load_and_preprocess_data, create_baseline_model
 
 class EdgeOptimizer: 
 
-    def __init__(self, baseline_model_path, x_train, y_train, x_test, y_test): 
+    def __init__(self, baseline_model_path, x_train, y_train, x_test, y_test, part3_logger): 
 
         self.baseline_model = tf.keras.models.load_model(baseline_model_path) 
         self.x_train = x_train
@@ -113,7 +113,7 @@ class EdgeOptimizer:
         pruned_model = tfmot.sparsity.keras.prune_low_magnitude(pruned_model, **pruning_params)
         pruned_model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+            loss='sparse_categorical_crossentropy',
             metrics=['accuracy']
         )
         
@@ -195,7 +195,7 @@ class EdgeOptimizer:
 
      
 
-    def implement_architecture_optimization(self, architecture={'depth': 3, 'width': 256, 'kernel_size': 3}): 
+    def implement_architecture_optimization(self, architecture={'depth': 3, 'width': 32, 'kernel_size': 3}): 
 
         """ 
 
@@ -283,8 +283,8 @@ class EdgeOptimizer:
         part3_logger.info(f"Defining search space for architecture optimization")
         # Can add more architectures to the search space if needed
         search_space = {
-            'depth': [1, 2],
-            'width': [128, 256],
+            'depth': [2, 3],
+            'width': [16, 32],
             'kernel_size': [3],
         }
         
@@ -544,7 +544,7 @@ def benchmark_edge_optimizations():
 
     """ 
     x_train, y_train, x_test, y_test = load_and_preprocess_data()
-    optimizer = EdgeOptimizer('part1_baseline/best_model.keras', x_train, y_train, x_test, y_test) 
+    optimizer = EdgeOptimizer('part1_baseline/best_model.keras', x_train, y_train, x_test, y_test, part3_logger) 
     
     results = {} 
 

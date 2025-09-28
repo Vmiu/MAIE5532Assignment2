@@ -11,10 +11,13 @@ from part1_baseline import load_and_preprocess_data
 from streamlined_analysis import streamlined_model_analysis
 class CloudOptimizer: 
 
-    def __init__(self, baseline_model_path): 
+    def __init__(self, baseline_model_path, x_train, y_train, x_test, y_test, part2_logger): 
 
         self.baseline_model = tf.keras.models.load_model(baseline_model_path)
-         
+        self.x_train = x_train
+        self.y_train = y_train
+        self.x_test = x_test
+        self.y_test = y_test
 
     def implement_mixed_precision(self): 
 
@@ -30,66 +33,34 @@ class CloudOptimizer:
 
         """ 
 
-        # Store the original policy to restore later
-        original_policy = tf.keras.mixed_precision.global_policy()
         
-        try:
-            # TODO: Enable mixed precision policy 
-            tf.keras.mixed_precision.set_global_policy('mixed_float16')
+        # TODO: Enable mixed precision policy 
+        # TODO: Modify model for mixed precision compatibility
+        part2_logger.info("Implementing mixed precision")
 
-            # TODO: Modify model for mixed precision compatibility
-            # Create a new model with logits output for mixed precision
-            # For mixed precision, we'll create a fresh model to avoid weight transfer issues
-            mixed_precision_model = tf.keras.Sequential([
-                tf.keras.layers.Conv2D(32, (3, 3), padding='same', input_shape=(32, 32, 3)),
-                tf.keras.layers.BatchNormalization(),
-                tf.keras.layers.ReLU(),
-                tf.keras.layers.Conv2D(32, (3, 3), padding='same'),
-                tf.keras.layers.BatchNormalization(),
-                tf.keras.layers.ReLU(),
-                tf.keras.layers.MaxPooling2D((2, 2)),
-
-                tf.keras.layers.Conv2D(64, (3, 3), padding='same'),
-                tf.keras.layers.BatchNormalization(),
-                tf.keras.layers.ReLU(),
-                tf.keras.layers.Conv2D(64, (3, 3), padding='same'),
-                tf.keras.layers.BatchNormalization(),
-                tf.keras.layers.ReLU(),
-                tf.keras.layers.MaxPooling2D((2, 2)),
-
-                tf.keras.layers.Conv2D(128, (3, 3), padding='same'),
-                tf.keras.layers.BatchNormalization(),
-                tf.keras.layers.ReLU(),
-                tf.keras.layers.Conv2D(128, (3, 3), padding='same'),
-                tf.keras.layers.BatchNormalization(),
-                tf.keras.layers.ReLU(),
-                tf.keras.layers.MaxPooling2D((2, 2)),
-                
-                tf.keras.layers.GlobalAveragePooling2D(),
-                tf.keras.layers.Dropout(0.5),
-                tf.keras.layers.Dense(256, activation='relu'),
-                tf.keras.layers.Dropout(0.3),
-                tf.keras.layers.Dense(10),  # No activation - outputs logits
-            ])
-            
-            # TODO: Handle loss scaling appropriately
-            # Create optimizer with proper loss scaling
-            optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
-            optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
-            
-            # Compile with proper loss function for mixed precision
-            mixed_precision_model.compile(
-                optimizer=optimizer, 
-                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), 
-                metrics=['accuracy']
-            )
-
-            return mixed_precision_model
-            
-        finally:
-            # Restore the original policy
-            tf.keras.mixed_precision.set_global_policy(original_policy)
-
+        # Create model from config and set weights - this is more reliable
+        model_config = self.baseline_model.get_config()
+        model_weights = self.baseline_model.get_weights()
+        mixed_precision_model = tf.keras.models.Sequential.from_config(model_config)
+        mixed_precision_model.set_weights(model_weights)
+        
+        # Set mixed precision policy for all layers
+        for layer in mixed_precision_model.layers:
+            layer._dtype_policy = tf.keras.mixed_precision.Policy('mixed_float16')
+        
+        # TODO: Handle loss scaling appropriately
+        # Create optimizer with proper loss scaling
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+        optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
+        
+        # Compile with proper loss function for mixed precision
+        mixed_precision_model.compile(
+            optimizer=optimizer, 
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), 
+            metrics=['accuracy']
+        )
+    
+        return mixed_precision_model
      
 
     def implement_model_parallelism(self, strategy='mirrored'): 
@@ -135,7 +106,7 @@ class CloudOptimizer:
         # TODO: Configure gradient synchronization 
         distributed_model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-            loss='sparse_categorical_crossentropy',
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
             metrics=['accuracy']
         )
         
@@ -563,13 +534,12 @@ def benchmark_cloud_optimizations():
         dict: Performance metrics for each optimization 
 
     """ 
-
-    optimizer = CloudOptimizer('part1_baseline/baseline_model.keras') 
-
-    results = {} 
-
     # Load the data
     x_train, y_train, x_test, y_test = load_and_preprocess_data()
+    
+    optimizer = CloudOptimizer('part1_baseline/best_model.keras', x_train, y_train, x_test, y_test, part2_logger) 
+
+    results = {} 
 
     ############################################################
     ############################################################
@@ -579,7 +549,7 @@ def benchmark_cloud_optimizations():
 
     # TODO: Measure training time, memory usage, accuracy 
     start_time = time.time()
-    history = MixedPrecisionModel.fit(x_train, y_train, epochs=20, batch_size=64, validation_data=(x_test, y_test), verbose=2)
+    history = MixedPrecisionModel.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test), verbose=2)
     end_time = time.time()
     part2_logger.info(f"Training time: {end_time - start_time} seconds")
     
