@@ -1,53 +1,53 @@
 {
   "optimization_results": {
-    "cloud_server": "OptimizationResult(model_path='part4_deployment_pipeline/distributed_mixed_precision_model.keras', accuracy=0.7990000247955322, model_size_mb=6.301822662353516, estimated_latency_ms=12.714768449914118, memory_usage_mb=5.699859619140625, optimization_strategy=['mixed_precision', 'distributed'])",
-    "edge_device": "OptimizationResult(model_path='part4_deployment_pipeline/edge_optimized_model.tflite', accuracy=0.7888, model_size_mb=2.4809646606445312, estimated_latency_ms=1.159913992881775, memory_usage_mb=2.4926834106445312, optimization_strategy=['0.5_pruning', 'dynamic_range_quantization'])",
-    "microcontroller": "OptimizationResult(model_path='part4_deployment_pipeline/tinyML_optimized_model.tflite', accuracy=0.5456, model_size_mb=4.036060333251953, estimated_latency_ms=0.9134440898895264, memory_usage_mb=4.038990020751953, optimization_strategy=['architecture_optimization', '0.75_pruning', 'float16_quantization'])"
+    "cloud_server": "OptimizationResult(model_path='part4_deployment_pipeline/distributed_mixed_precision_model.keras', accuracy=0.8180000185966492, model_size_mb=6.301822662353516, estimated_latency_ms=12.411639484985244, memory_usage_mb=5.699859619140625, optimization_strategy=['mixed_precision', 'distributed'])",
+    "edge_device": "OptimizationResult(model_path='part4_deployment_pipeline/edge_optimized_model.tflite', accuracy=0.7857, model_size_mb=1.1012954711914062, estimated_latency_ms=1.1638659715652464, memory_usage_mb=1.1130142211914062, optimization_strategy=['0.5_pruning', 'dynamic_range_quantization'])",
+    "microcontroller": "OptimizationResult(model_path='part4_deployment_pipeline/tinyML_optimized_model.tflite', accuracy=0.6224, model_size_mb=1.6850414276123047, estimated_latency_ms=0.915278959274292, memory_usage_mb=1.6967601776123047, optimization_strategy=['architecture_optimization', '0.75_pruning', 'float16_quantization'])"
   },
   "scaling_analysis": {
     "pareto_frontier": [
       {
         "target": "cloud_server",
-        "accuracy": 0.7990000247955322,
-        "latency": 12.714768449914118
+        "accuracy": 0.8180000185966492,
+        "latency": 12.411639484985244
       },
       {
         "target": "edge_device",
-        "accuracy": 0.7888,
-        "latency": 1.159913992881775
+        "accuracy": 0.7857,
+        "latency": 1.1638659715652464
       },
       {
         "target": "microcontroller",
-        "accuracy": 0.5456,
-        "latency": 0.9134440898895264
+        "accuracy": 0.6224,
+        "latency": 0.915278959274292
       }
     ],
     "cloud_server": {
-      "scaling_efficiency": 5.955487296327534,
+      "scaling_efficiency": 6.238051187231406,
       "bottleneck": "latency",
       "model_size_mb": 6.301822662353516,
-      "latency": 12.714768449914118,
+      "latency": 12.411639484985244,
       "memory_usage_mb": 5.699859619140625
     },
     "edge_device": {
-      "scaling_efficiency": 13.083997488575086,
+      "scaling_efficiency": 26.173340509615297,
       "bottleneck": "model_size",
-      "model_size_mb": 2.4809646606445312,
-      "latency": 1.159913992881775,
-      "memory_usage_mb": 2.4926834106445312
+      "model_size_mb": 1.1012954711914062,
+      "latency": 1.1638659715652464,
+      "memory_usage_mb": 1.1130142211914062
     },
     "microcontroller": {
-      "scaling_efficiency": 0.13307047698227384,
+      "scaling_efficiency": 0.36345192296617645,
       "bottleneck": "model_size",
-      "model_size_mb": 4.036060333251953,
-      "latency": 0.9134440898895264,
-      "memory_usage_mb": 4.038990020751953
+      "model_size_mb": 1.6850414276123047,
+      "latency": 0.915278959274292,
+      "memory_usage_mb": 1.6967601776123047
     }
   },
   "deployment_recommendations": [
     "Recommended targets: {'cloud_server': 'cloud_server', 'edge_device': 'edge_device'}",
     "\n        Cascaded deployment is used when we require high accuracy and low energy consumption,\n        which most used in the edge devices or microcontrollers. We can use a small model optimized with tinyML optimization\n        combine a larger model optimized with edge optimization methods to achieve the best performance. Small model usually have\n        low latency and low energy consumption, we use it to preprocess data and trigger the larger model to make more comfidence prediction.\n        ",
-    "\n        We can use the pareto frontiers to decide which models is the best for each target. Model with higher accuracy and model size\n        is better for the cloud server, model with lower latency and model size is better for the edge devices, model with lowest latency and memory usage\n        is better for the microcontrollers.\n        Pareto frontier: [{'target': 'cloud_server', 'accuracy': 0.7990000247955322, 'latency': 12.714768449914118}, {'target': 'edge_device', 'accuracy': 0.7888, 'latency': 1.159913992881775}, {'target': 'microcontroller', 'accuracy': 0.5456, 'latency': 0.9134440898895264}]\n        ",
+    "\n        We can use the pareto frontiers to decide which models is the best for each target. Model with higher accuracy and model size\n        is better for the cloud server, model with lower latency and model size is better for the edge devices, model with lowest latency and memory usage\n        is better for the microcontrollers.\n        Pareto frontier: [{'target': 'cloud_server', 'accuracy': 0.8180000185966492, 'latency': 12.411639484985244}, {'target': 'edge_device', 'accuracy': 0.7857, 'latency': 1.1638659715652464}, {'target': 'microcontroller', 'accuracy': 0.6224, 'latency': 0.915278959274292}]\n        ",
     "\n        We should prioritize the development of each bottlenecks for each target. \n        For example, if the bottleneck is latency, we should prioritize reducing the latency.\n        Current bottlenecks: {'cloud_server': 'latency', 'edge_device': 'model_size', 'microcontroller': 'model_size'}\n        "
   ]
 }

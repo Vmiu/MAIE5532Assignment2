@@ -113,7 +113,7 @@ class EdgeOptimizer:
         pruned_model = tfmot.sparsity.keras.prune_low_magnitude(pruned_model, **pruning_params)
         pruned_model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-            loss='sparse_categorical_crossentropy',
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
             metrics=['accuracy']
         )
         

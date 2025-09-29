@@ -90,6 +90,13 @@ def measure_model_accuracy_latency(model, x_test, y_test):
     latency = inference_time / x_test.shape[0] * 1000 # ms
     accuracy = correct_predictions / x_test.shape[0]
     return accuracy, latency
+
+def count_non_zero_params(model):
+    """Count the number of non-zero parameters in a model"""
+    non_zero_count = 0
+    for w in model.trainable_weights:
+        non_zero_count += tf.reduce_sum(tf.cast(tf.not_equal(w, 0), tf.int32)).numpy()
+    return non_zero_count
 class ModelOptimizer(ABC): 
 
     @abstractmethod 
@@ -197,6 +204,7 @@ class EdgeOptimizer(ModelOptimizer):
             tfmot.sparsity.keras.UpdatePruningStep(),
         ]
         new_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test), verbose=2, callbacks=callbacks)
+        model_size = count_non_zero_params(new_model)*4/1024/1024 # MB
         part4_logger.info("Applying dynamic range quantization")
         new_model = tf.lite.TFLiteConverter.from_keras_model(new_model)
         new_model.optimizations = [tf.lite.Optimize.DEFAULT]
@@ -211,7 +219,6 @@ class EdgeOptimizer(ModelOptimizer):
         
         accuracy, latency = measure_model_accuracy_latency(new_model, x_test, y_test)
         
-        model_size = os.path.getsize(model_path) / 1024 / 1024
         per_sample_data_size = np.prod(x_test.shape[1:]) * 4 / 1024 / 1024 # MB
         
         part4_logger.info(f"Model accuracy: {accuracy}")
@@ -284,6 +291,7 @@ class TinyMLOptimizer(ModelOptimizer):
             tfmot.sparsity.keras.UpdatePruningStep(),
         ]
         new_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test), verbose=2, callbacks=callbacks)
+        model_size = count_non_zero_params(new_model)*2/1024/1024 # dtype is float16, so each parameter is 2 bytes
         part4_logger.info("Applying float16 quantization")
         new_model = tf.lite.TFLiteConverter.from_keras_model(new_model)
         new_model.optimizations = [tf.lite.Optimize.DEFAULT]
@@ -299,8 +307,7 @@ class TinyMLOptimizer(ModelOptimizer):
         
         accuracy, latency = measure_model_accuracy_latency(new_model, x_test, y_test)
         
-        model_size = os.path.getsize(model_path) / 1024 / 1024
-        per_sample_data_size = np.prod(x_test.shape[1:]) * 1 / 1024 / 1024 # MB
+        per_sample_data_size = np.prod(x_test.shape[1:]) * 4 / 1024 / 1024 # dtype is float32, so each pixel is 4 bytes
         
         part4_logger.info(f"Model accuracy: {accuracy}")
         part4_logger.info(f"Model latency: {latency} ms")
@@ -649,6 +656,16 @@ def run_multi_scale_optimization():
 if __name__ == "__main__": 
     os.makedirs('part4_deployment_pipeline', exist_ok=True)
     part4_logger = get_simple_logger('part4_deployment_pipeline', 'part4_deployment_pipeline/part4_terminal.log')
+    
+    # Use GPU if available
+    physical_devices = tf.config.list_physical_devices('GPU')
+    if len(physical_devices) > 0:
+        part4_logger.info(f"GPU available: {physical_devices}")
+        for device in physical_devices:
+            tf.config.experimental.set_memory_growth(device, True)
+    else:
+        part4_logger.info(f"No GPU available")
+    
 
     report = run_multi_scale_optimization() 
 
