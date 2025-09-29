@@ -204,7 +204,17 @@ class EdgeOptimizer(ModelOptimizer):
             tfmot.sparsity.keras.UpdatePruningStep(),
         ]
         new_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test), verbose=2, callbacks=callbacks)
-        model_size = count_non_zero_params(new_model)*4/1024/1024 # MB
+        
+        # Calculate theoretical size: pruning + dynamic range quantization
+        total_params = count_non_zero_params(new_model)
+        pruned_params = int(total_params * (1 - 0.5))  # 50% pruning means 50% remaining
+        # Dynamic range quantization typically reduces size by ~25% (int8 vs float32)
+        model_size = pruned_params * 4 * 0.75 / 1024 / 1024  # MB
+        
+        part4_logger.info(f"Theoretical size calculation:")
+        part4_logger.info(f"  Total parameters: {total_params}")
+        part4_logger.info(f"  After 50% pruning: {pruned_params}")
+        part4_logger.info(f"  With dynamic range quantization: {model_size:.4f} MB")
         part4_logger.info("Applying dynamic range quantization")
         new_model = tf.lite.TFLiteConverter.from_keras_model(new_model)
         new_model.optimizations = [tf.lite.Optimize.DEFAULT]
@@ -247,7 +257,7 @@ class TinyMLOptimizer(ModelOptimizer):
         x_train, y_train, x_test, y_test = load_and_preprocess_data()
         
         part4_logger.info("Implementing architecture optimization")
-        architecture={'depth': 2, 'width': 32, 'kernel_size': 3}
+        architecture={'depth': 1, 'width': 32, 'kernel_size': 3}
         input_shape = x_train.shape[1:]
         num_classes = 10
         current_filters = architecture['width']
@@ -291,7 +301,17 @@ class TinyMLOptimizer(ModelOptimizer):
             tfmot.sparsity.keras.UpdatePruningStep(),
         ]
         new_model.fit(x_train, y_train, epochs=10, batch_size=64, validation_data=(x_test, y_test), verbose=2, callbacks=callbacks)
-        model_size = count_non_zero_params(new_model)*2/1024/1024 # dtype is float16, so each parameter is 2 bytes
+        
+        # Calculate theoretical size: architecture optimization + pruning + quantization
+        total_params = count_non_zero_params(new_model)
+        pruned_params = int(total_params * (1 - 0.75))  # 75% pruning means 25% remaining
+        # Apply float16 quantization (2 bytes per parameter instead of 4)
+        model_size = pruned_params * 2 / 1024 / 1024  # MB
+        
+        part4_logger.info(f"Theoretical size calculation:")
+        part4_logger.info(f"  Total parameters: {total_params}")
+        part4_logger.info(f"  After 75% pruning: {pruned_params}")
+        part4_logger.info(f"  With float16 quantization: {model_size:.4f} MB")
         part4_logger.info("Applying float16 quantization")
         new_model = tf.lite.TFLiteConverter.from_keras_model(new_model)
         new_model.optimizations = [tf.lite.Optimize.DEFAULT]

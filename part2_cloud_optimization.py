@@ -38,11 +38,9 @@ class CloudOptimizer:
         # TODO: Modify model for mixed precision compatibility
         part2_logger.info("Implementing mixed precision")
 
-        # Create model from config and set weights - this is more reliable
+        # Create model from config
         model_config = self.baseline_model.get_config()
-        model_weights = self.baseline_model.get_weights()
         mixed_precision_model = tf.keras.models.Sequential.from_config(model_config)
-        mixed_precision_model.set_weights(model_weights)
         
         # Set mixed precision policy for all layers
         for layer in mixed_precision_model.layers:
@@ -53,11 +51,16 @@ class CloudOptimizer:
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
         optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
         
+        callbacks = [
+            tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True),
+            tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=5, min_lr=0.0001)
+        ]
         # Compile with proper loss function for mixed precision
         mixed_precision_model.compile(
             optimizer=optimizer, 
             loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True), 
-            metrics=['accuracy']
+            metrics=['accuracy'],
+            callbacks=callbacks
         )
     
         return mixed_precision_model

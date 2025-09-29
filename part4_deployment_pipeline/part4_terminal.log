@@ -29,7 +29,7 @@ Layer: dense, dtype: <Policy "mixed_float16">
 Layer: dropout_1, dtype: <Policy "mixed_float16">
 Layer: dense_1, dtype: <Policy "mixed_float16">
 Training distributed mixed precision model
-Time taken to train distributed mixed precision model: 131.0179455280304 seconds
+Time taken to train distributed mixed precision model: 169.03781723976135 seconds
 
 ============================================================
 🔍 STREAMLINED ANALYSIS: part4_deployment_pipeline/distributed_mixed_precision_model.keras
@@ -61,37 +61,45 @@ Time taken to train distributed mixed precision model: 131.0179455280304 seconds
 
 ⚡ PERFORMANCE & SPEED ANALYSIS
 --------------------------------------------------
-   Test Accuracy:81.80%
-   Test Loss: 0.5448
-   Single Sample Time: 12.41 ± 129.28 ms
+   Test Accuracy:81.91%
+   Test Loss: 0.6123
+   Single Sample Time: 11.60 ± 119.22 ms
    GPU Available: Yes
    GPU Memory Growth: True
 Optimizing for edge
 Implementing pruning
 Finetuning pruned model
+Theoretical size calculation:
+  Total parameters: 288698
+  After 50% pruning: 144349
+  With dynamic range quantization: 0.4130 MB
 Applying dynamic range quantization
 Saving edge optimized model to: part4_deployment_pipeline/edge_optimized_model.tflite
 Measuring model accuracy and latency
 Input type: <class 'numpy.float32'>, Quantization: (0.0, 0)
 Output type: <class 'numpy.float32'>, Quantization: (0.0, 0)
-Model accuracy: 0.7857
-Model latency: 1.1638659715652464 ms
-Model size: 1.1012954711914062 MB
+Model accuracy: 0.7306
+Model latency: 1.4610924482345582 ms
+Model size: 0.41298580169677734 MB
 Optimizing for tinyML
 Implementing architecture optimization
 Implementing pruning
 Finetuning pruned model
+Theoretical size calculation:
+  Total parameters: 1759686
+  After 75% pruning: 439921
+  With float16 quantization: 0.8391 MB
 Applying float16 quantization
 Saving tinyML optimized model to: part4_deployment_pipeline/tinyML_optimized_model.tflite
 Measuring model accuracy and latency
 Input type: <class 'numpy.float32'>, Quantization: (0.0, 0)
 Output type: <class 'numpy.float32'>, Quantization: (0.0, 0)
-Model accuracy: 0.6224
-Model latency: 0.915278959274292 ms
-Model size: 1.6850414276123047 MB
+Model accuracy: 0.432
+Model latency: 2.933188772201538 ms
+Model size: 0.8390827178955078 MB
 For use case cloud_server, deploy with ['mixed_precision', 'distributed'] to achieve the best performance
 For use case edge_device, deploy with ['0.5_pruning', 'dynamic_range_quantization'] to achieve the best performance
 For use case microcontroller, deploy with ['architecture_optimization', '0.75_pruning', 'float16_quantization'] to achieve the best performance
-The targets that meet the performance requirements are: {'cloud_server': 'cloud_server', 'edge_device': 'edge_device'}
+The targets that meet the performance requirements are: {'cloud_server': 'cloud_server', 'edge_device': 'edge_device', 'microcontroller': 'microcontroller'}
 Multi-Scale Optimization Complete!
 Report saved to: multi_scale_optimization_report.json
