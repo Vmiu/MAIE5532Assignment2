@@ -257,17 +257,14 @@ class TinyMLOptimizer(ModelOptimizer):
         x_train, y_train, x_test, y_test = load_and_preprocess_data()
         
         part4_logger.info("Implementing architecture optimization")
-        architecture={'depth': 1, 'width': 32, 'kernel_size': 3}
+        architecture={'depth': 2, 'width': 32, 'kernel_size': 3}
         input_shape = x_train.shape[1:]
         num_classes = 10
         current_filters = architecture['width']
         new_model = tf.keras.models.Sequential()
         new_model.add(tf.keras.layers.Input(shape=input_shape))
         for block_idx in range(architecture['depth']):
-            new_model.add(tf.keras.layers.DepthwiseConv2D(kernel_size=architecture['kernel_size'], padding='same', depth_multiplier=1))
-            new_model.add(tf.keras.layers.BatchNormalization())
-            new_model.add(tf.keras.layers.ReLU(max_value=6))
-            new_model.add(tf.keras.layers.Conv2D(current_filters, kernel_size=1, padding='same'))
+            new_model.add(tf.keras.layers.Conv2D(current_filters, kernel_size=architecture['kernel_size'], padding='same'))
             new_model.add(tf.keras.layers.BatchNormalization())
             new_model.add(tf.keras.layers.ReLU(max_value=6))
             new_model.add(tf.keras.layers.MaxPooling2D((2, 2)))
